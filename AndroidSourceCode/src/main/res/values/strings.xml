@@ -5,4 +5,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
 
+    <string name="wiflyInst">Instructions For Selecting a Wireless Network:\n1. Turn on command mode.\n2. Scan for wireless networks.\n3. Repeat step 2
+        if nothing appears after 5 seconds.\n4. Look below. You should now be able to select a wireless network to connect to.</string>
+
 </resources>

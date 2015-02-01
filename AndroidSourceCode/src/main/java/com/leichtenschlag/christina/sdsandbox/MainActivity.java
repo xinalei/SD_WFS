@@ -26,16 +26,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener {
 
     static BluetoothAdapter mBluetoothAdapter;
     static ListView btDeviceList;
     static ArrayAdapter<String> btArrayAdapter;
     static ConnectingDevices mConnectingDevices = null;
-    private TextView connectionStatus;
     static BluetoothDevice device = null;
-    static String btDeviceName = null;
+    static String btDeviceName = null, availableWifiNetworks = null;
     static CommandFragment commandFrag;
+
+    private TextView connectionStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,7 +150,23 @@ public class MainActivity extends ActionBarActivity {
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    commandFrag.updateLog(readMessage, true);
+
+                    if(commandFrag.obtain_sd) {
+                        commandFrag.updateScanLog(readMessage);
+                        for(int i=0; i<readBuf.length; i++) {
+                            if(0x7F == readBuf[i]) {
+
+                                availableWifiNetworks = commandFrag.stopCollectingScanData();
+                                break;
+                            }
+                        }
+                    } else {
+                        commandFrag.updateLog(readMessage, true);
+                    }
+
+                    if(null != availableWifiNetworks) {
+                        selectANetwork();
+                    }
 //                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
@@ -195,6 +212,14 @@ public class MainActivity extends ActionBarActivity {
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.mainactivity_container, commandFrag)
                 .commit();
+    }
+
+    // We have data to be able to choose which wifi network to connect to. So lets do it!
+    private void selectANetwork() {
+//        commandFrag = new CommandFragment();
+//        getSupportFragmentManager().beginTransaction()
+//                .replace(R.id.mainactivity_container, commandFrag)
+//                .commit();
     }
 
     @Override

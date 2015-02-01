@@ -109,6 +109,7 @@ public class ConnectingDevices {
     }
 
 
+    // Listener for the Wifly Module
     private class ConnectedThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
@@ -137,12 +138,14 @@ public class ConnectingDevices {
             int bytes; // bytes returned from read()
 
             // Keep listening to the InputStream until an exception occurs
+            // Listening to messages being sent from Wifly module
             while (true) {
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
 
                     // Send the obtained bytes to the UI activity
+                    // We've received a message from the Wifly module!
                     mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer).sendToTarget();
 
                 } catch (IOException e) {
