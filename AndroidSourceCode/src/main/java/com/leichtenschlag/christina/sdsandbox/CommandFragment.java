@@ -70,9 +70,10 @@ public class CommandFragment extends Fragment {
         scan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.v("SCAN COMMAND", "start collecting data");
+                obtain_sd = true; // If command == scan, then start adding received data to a buffer.
                 MainActivity.mConnectingDevices.write("S".getBytes()); // sends data to device
                 updateLog("scan", false);
-                obtain_sd = true; // If command == scan, then start adding received data to a buffer.
             }
         });
 
@@ -119,10 +120,10 @@ public class CommandFragment extends Fragment {
     public String stopCollectingScanData() {
         obtain_sd = false;
         String sd = scan_data.toString();
-        Log.v("received 0x7F", sd);
-        Log.v("receivedF", "stop holding data");
-        updateLog(sd, true);
+        Log.v("contents of sd:", sd);
+        updateLog("<< Received network data >>", true);
         scan_data.setLength(0); // Reset
+
         return sd;
     }
 }

@@ -9,25 +9,22 @@ import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener {
-
+public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener, PasswordDialog.PasswordListener
+{
     static BluetoothAdapter mBluetoothAdapter;
     static ListView btDeviceList;
     static ArrayAdapter<String> btArrayAdapter;
@@ -37,6 +34,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static CommandFragment commandFrag;
 
     private TextView connectionStatus;
+    SelectNetworkDialog networkDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +105,12 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        Log.v("app is resuming", "");
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
 
@@ -155,8 +159,9 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                         commandFrag.updateScanLog(readMessage);
                         for(int i=0; i<readBuf.length; i++) {
                             if(0x7F == readBuf[i]) {
-
+                                Log.v("received ox7f", "not collecting data anymore.");
                                 availableWifiNetworks = commandFrag.stopCollectingScanData();
+                                selectANetwork();
                                 break;
                             }
                         }
@@ -164,10 +169,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                         commandFrag.updateLog(readMessage, true);
                     }
 
-                    if(null != availableWifiNetworks) {
-                        selectANetwork();
-                    }
-//                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -191,6 +192,20 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     break;
                 case Constants.DISCONNECT: // Lost connection with bluetooth module.
                     // First replace command fragment with bluetooth fragment
+
+                    // Kill SelectNetworkDialog if it exists.
+                    Fragment f = getSupportFragmentManager().findFragmentByTag("dialog_selectnetwork");
+                    if(null != f) {
+                        getSupportFragmentManager().beginTransaction().remove(f).commit();
+                    }
+
+                    // Kill PasswordDialog if it exists
+                    f = getSupportFragmentManager().findFragmentByTag("dialog_enterpw");
+                    if(null != f) {
+                        getSupportFragmentManager().beginTransaction().remove(f).commit();
+                    }
+
+                    // Back to the main activity!
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.mainactivity_container, new BluetoothFragment())
                             .commitAllowingStateLoss();
@@ -216,10 +231,30 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
-//        commandFrag = new CommandFragment();
-//        getSupportFragmentManager().beginTransaction()
-//                .replace(R.id.mainactivity_container, commandFrag)
-//                .commit();
+
+        if(null != availableWifiNetworks && availableWifiNetworks.length() >  8) {
+            Log.v("starting the network dialog", availableWifiNetworks);
+
+            // DialogFragment.show() will take care of adding the fragment
+            // in a transaction.  We also want to remove any currently showing
+            // dialog, so make our own transaction and take care of that here.
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog_selectnetwork");
+            if (prev != null) {
+                ft.remove(prev);
+            }
+            ft.addToBackStack(null);
+
+            // Create and show the dialog.
+            DialogFragment newFragment = SelectNetworkDialog.newInstance(availableWifiNetworks);
+            newFragment.show(ft, "dialog_selectnetwork");
+        }
+        else {
+            // Nothing was found.
+            Toast.makeText(getApplicationContext(), "No networks were found. Try scanning again.", Toast.LENGTH_SHORT).show();
+        }
+
+        availableWifiNetworks = null; // reset to null.
     }
 
     @Override
@@ -238,4 +273,32 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     }
 
 
+    // Methods that must be implemented
+    public void wifiNetworkSelected(String ssid) {
+
+        Log.v("wifiNetworkSelected", "user selected " + ssid);
+        // Prompt user for a password.
+
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog_enterpw");
+        if (prev != null) {
+            ft.remove(prev);
+        }
+        ft.addToBackStack(null);
+
+        // Create and show the dialog.
+        DialogFragment newFragment = PasswordDialog.newInstance(ssid);
+        if(null == newFragment) {
+            Toast.makeText(getApplicationContext(), "Could not make password dialog.", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            newFragment.show(ft, "dialog_enterpw");
+        }
+    }
+
+    public void updatePassword(String p) {
+
+        // Tell wifly a password.
+        Log.v("user has entered a password", p);
+    }
 }

@@ -9,64 +9,48 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     >
 
-    <RelativeLayout
-        android:layout_width="fill_parent"
-        android:layout_height="230dp">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/wiflyInst"
+        android:id="@+id/textView_wiflyinst"
+        android:editable="false"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:padding="5dp"/>
 
-        <LinearLayout
-            android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:id="@+id/ll_wiflybuttons"
+        android:layout_gravity="center">
+
+        <Button
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:id="@+id/ll_wiflybuttons"
-            android:layout_toLeftOf="@+id/centerShim">
+            android:text="Turn On Command Mode"
+            android:id="@+id/button_wifly$$$"/>
 
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Turn On Command Mode"
-                android:id="@+id/button_wifly$$$"/>
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Scan For Wireless Networks"
-                android:id="@+id/button_wiflyscan"/>
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Turn Off Command Mode"
-                android:id="@+id/button_wiflyexit"/>
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Reboot Wifly Module"
-                android:id="@+id/button_wiflyreboot"/>
-
-        </LinearLayout>
-
-        <!-- An invisible view aligned to the center of the parent. Allows other
-        views to be arranged on either side -->
-        <View
-            android:id="@+id/centerShim"
-            android:layout_height="match_parent"
-            android:layout_width="0dp"
-            android:visibility="invisible"
-            android:layout_centerHorizontal="true"/>
-
-        <TextView
-            android:layout_width="wrap_content"
+        <Button
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="@string/wiflyInst"
-            android:id="@+id/textView_wiflyinst"
-            android:layout_toRightOf="@+id/centerShim"
-            android:editable="false"
-            android:textSize="14sp"
-            android:gravity="center"
-            android:padding="5dp"/>
+            android:text="Scan For Wireless Networks"
+            android:id="@+id/button_wiflyscan"/>
 
-    </RelativeLayout>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Turn Off Command Mode"
+            android:id="@+id/button_wiflyexit"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Reboot Wifly Module"
+            android:id="@+id/button_wiflyreboot"/>
+
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="fill_parent"
@@ -91,7 +75,8 @@
         android:id="@+id/button_clearlog"
         android:text="Clear Log"
         android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true" />
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="center"/>
 
 
 </LinearLayout>
