@@ -7,7 +7,7 @@
 
 #define BUFFER_SIZE 2000
 
-char wiflyBuffer[BUFFER_SIZE]; // about 75 chars per network found.
+char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
 int wiflyLastRec = 0;
 int scanning = 0; // boolean 0=false 1=true
@@ -37,11 +37,6 @@ int main(void)
 	UCA1MCTL |= UCBRS_1 + UCBRF_0;   // Modln UCBRSx=0, UCBRFx=0,
 	UCA1CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
 	UCA1IE |= UCRXIE;                         // Enable USCI_A1 RX interrupt
-
-	// And i guess from here we just keep calling other functions.?
-	// First thing that will happen should be the bluetooth module receiving commands
-	  // from the user/android device. First command should be to select a wifi network.
-	// > s : scan for a network
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
@@ -117,19 +112,11 @@ void wiflyRebootCommand()
 
 void parseScanData()
 {
-//	while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
-//		UCA1TXBUF = '~'; // Send char
-//		while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
-//		UCA1TXBUF = '\n'; // Send char
-//		while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
-//		UCA1TXBUF = '\r'; // Send char
-
 	// Pass the input to buffer_c.parse
-	char *ptr;
 	parse(wiflyBuffer,parsed);
 
 	// Now that we've got the parsed data, lets send it.
-	ptr = parsed;
+	char *ptr = parsed;
 	while('\0' != *ptr)
 	{
 		while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
@@ -137,13 +124,15 @@ void parseScanData()
 		ptr++;
 	}
 
-	// Send 0x04
-	while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
-	UCA1TXBUF = 0x7F; // Send EOT
-	while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
-	UCA1TXBUF = 0x7F; // Send EOT
+	// Reset variables
+	scanning = 0;
+	int l;
+	for(l=0; l<BUFFER_SIZE; l++) {
+	  wiflyBuffer[l] = '\0';
+	  parsed[l] = '\0';
+	}
+	wiflyLastRec = 0;
 }
-
 
 // USCI_A0 interrupt -- wifly module
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
@@ -173,18 +162,9 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 							  && ('N'==wiflyBuffer[wiflyLastRec-2])
 							  && ('E'==wiflyBuffer[wiflyLastRec-3]) )
 		  {
-			  // IT WORKED. Received END after scanning
-
 			  // Parse the data & then send parsed data to Bluetooth.
 			  parseScanData();
-			  scanning = 0;
-
-			  // Reset buffer
-			  memset(wiflyBuffer,'\0',BUFFER_SIZE);
-			  memset(parsed,'\0',BUFFER_SIZE);
-			  wiflyLastRec = 0;
 		  }
-
 	  }
 	  else // Send the char received from Wifly to Bluetooth
 	  {
@@ -194,7 +174,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 	  }
 
 	  break;
-  case 4:break; // TXIFG - sending a character
+  case 4: break; // TXIFG - sending a character
   default: break;
   }
 }
@@ -236,6 +216,8 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		}
 		else {
 
+			// If wifly is in command mode and isn't one of the above preset functions,
+			//  send the character to the wifly module.
 			if(1 == wiflyCommand) {
 				while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
 				UCA0TXBUF = UCA1RXBUF; // send character to wifly module
@@ -243,7 +225,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		}
 
 		break;
-	case 4:break; // TXIFG - sending a character
+	case 4: break; // TXIFG - sending a character
 	default: break;
   }
 }
