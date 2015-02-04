@@ -156,14 +156,15 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     String readMessage = new String(readBuf, 0, msg.arg1);
 
                     if(commandFrag.obtain_sd) {
+                        // First add message to commandFrag variable
                         commandFrag.updateScanLog(readMessage);
-                        for(int i=0; i<readBuf.length; i++) {
-                            if(0x7F == readBuf[i]) {
-                                Log.v("received ox7f", "not collecting data anymore.");
-                                availableWifiNetworks = commandFrag.stopCollectingScanData();
-                                selectANetwork();
-                                break;
-                            }
+
+                        // Have we collected data for all the networks?
+                        // TODO: Implement a timeout in case we lose data (?!??!)
+                        if(commandFrag.determineIfDoneCollecting()) {
+                            // Done collecting.
+                            availableWifiNetworks = commandFrag.stopCollectingScanData();
+                            selectANetwork();
                         }
                     } else {
                         commandFrag.updateLog(readMessage, true);
@@ -232,10 +233,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
 
+        // Only start the dialog to select a network if we have enough data.
         if(null != availableWifiNetworks && availableWifiNetworks.length() >  8) {
-            Log.v("starting the network dialog", availableWifiNetworks);
-
-
 
             // DialogFragment.show() will take care of adding the fragment
             // in a transaction.  We also want to remove any currently showing

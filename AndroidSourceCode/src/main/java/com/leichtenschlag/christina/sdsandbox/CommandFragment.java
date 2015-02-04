@@ -23,6 +23,7 @@ public class CommandFragment extends Fragment {
     private StringBuilder log, scan_data;
     private ScrollView log_container;
     boolean obtain_sd = false;
+    Integer numNetworks;
 
     public CommandFragment() {
     }
@@ -70,7 +71,6 @@ public class CommandFragment extends Fragment {
         scan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.v("SCAN COMMAND", "start collecting data");
                 obtain_sd = true; // If command == scan, then start adding received data to a buffer.
                 MainActivity.mConnectingDevices.write("S".getBytes()); // sends data to device
                 updateLog("scan", false);
@@ -98,10 +98,6 @@ public class CommandFragment extends Fragment {
 
         if(null != additionalText) {
 
-            for(char ch : additionalText.toCharArray()) {
-                Log.v(String.valueOf(ch), Integer.toHexString( ch ) );
-            }
-
             if(module) log.append("Received: ");
             else log.append("Sent:     ");
             log.append(additionalText).append("\n");
@@ -124,10 +120,41 @@ public class CommandFragment extends Fragment {
     public String stopCollectingScanData() {
         obtain_sd = false;
         String sd = scan_data.toString();
-        Log.v("contents of sd:", sd);
         updateLog("<< Received network data >>", true);
         scan_data.setLength(0); // Reset
 
         return sd;
+    }
+
+    public boolean determineIfDoneCollecting() {
+
+        StringBuilder n = new StringBuilder();
+        for(char ch : scan_data.toString().toCharArray()) {
+            if('\n' == ch) break;
+            n.append(ch);
+        }
+
+        try{
+            int expectedNumNetworks = Integer.valueOf( n.toString().trim() );
+
+            int count = 0;
+            for(char ch : scan_data.toString().toCharArray()) {
+                if('\n' == ch) count++;
+            }
+
+
+            if(count == 1+expectedNumNetworks) {
+                // We're done.
+                return true;
+            }
+            else { // Not done yet!
+                return false;
+            }
+
+        } catch (Exception e) {
+            updateLog("ERROR: Something went wrong with the data. Try scanning again!", true);
+            stopCollectingScanData(); // Stop collecting!
+            return false;
+        }
     }
 }

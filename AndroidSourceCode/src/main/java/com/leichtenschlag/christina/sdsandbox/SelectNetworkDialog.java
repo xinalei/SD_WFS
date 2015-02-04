@@ -22,6 +22,7 @@ public class SelectNetworkDialog extends DialogFragment {
     ArrayAdapter<String> wifiArrayAdapter;
     ArrayList<String> networks;
     ListView allNetworks;
+    Integer numNetworks;
 
     // Use this instance of the interface to deliver action events
     static NetworkSelectListener mListener;
@@ -51,15 +52,20 @@ public class SelectNetworkDialog extends DialogFragment {
 
         if(null == s) return null;
 
+        StringBuilder curr = new StringBuilder();
         int index = 0;
-        while('\n' != s.charAt(index)) { // Sometimes "END" is prepended to the data.
-            index++;
-            if(index >= s.length()) return null;
+        // First line is the number of networks found.
+        while(index < s.length() && '\n' != s.charAt(index)) {
+            curr.append(s.charAt(index++));
         }
-        index++; // move past initial newline.
+        // index is at the newline for line containing "numnetworks\n"
+        index++;
+
+        int numnetworks = Integer.valueOf(curr.toString());
+        Log.v("numnetworks",String.valueOf(numnetworks));
+        //index++; // move past initial newline.
 
         ArrayList<String> wifiNetworks = new ArrayList<>();
-        StringBuilder curr = new StringBuilder();
         while(index < s.length()) {
 
             if(0x0D == s.charAt(index)) { // newline
