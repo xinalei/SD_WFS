@@ -235,6 +235,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         if(null != availableWifiNetworks && availableWifiNetworks.length() >  8) {
             Log.v("starting the network dialog", availableWifiNetworks);
 
+
+
             // DialogFragment.show() will take care of adding the fragment
             // in a transaction.  We also want to remove any currently showing
             // dialog, so make our own transaction and take care of that here.

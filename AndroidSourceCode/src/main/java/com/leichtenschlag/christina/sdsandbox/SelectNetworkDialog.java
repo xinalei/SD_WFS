@@ -52,28 +52,24 @@ public class SelectNetworkDialog extends DialogFragment {
         if(null == s) return null;
 
         int index = 0;
-        while('0' != s.charAt(index)) { // Sometimes "END" is prepended to the data.
+        while('\n' != s.charAt(index)) { // Sometimes "END" is prepended to the data.
             index++;
             if(index >= s.length()) return null;
         }
+        index++; // move past initial newline.
 
         ArrayList<String> wifiNetworks = new ArrayList<>();
         StringBuilder curr = new StringBuilder();
-        boolean getSSID = false;
         while(index < s.length()) {
 
-            if(',' == s.charAt(index)) {
-                getSSID = true;
-            }
-            else if(0x0D == s.charAt(index)) { // newline
-                getSSID = false;
+            if(0x0D == s.charAt(index)) { // newline
                 wifiNetworks.add( curr.toString() );
                 curr.setLength(0); // reset curr
             }
             else if(0x7F == s.charAt(index)) {
                 break;
             }
-            else if(getSSID) { // append to curr.
+            else { // append to curr.
                 curr.append( s.charAt(index) );
             }
 

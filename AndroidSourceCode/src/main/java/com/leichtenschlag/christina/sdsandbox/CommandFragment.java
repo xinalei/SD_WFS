@@ -98,6 +98,10 @@ public class CommandFragment extends Fragment {
 
         if(null != additionalText) {
 
+            for(char ch : additionalText.toCharArray()) {
+                Log.v(String.valueOf(ch), Integer.toHexString( ch ) );
+            }
+
             if(module) log.append("Received: ");
             else log.append("Sent:     ");
             log.append(additionalText).append("\n");
