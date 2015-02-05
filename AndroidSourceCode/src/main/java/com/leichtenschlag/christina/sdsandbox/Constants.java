@@ -19,5 +19,8 @@ public interface Constants {
     public static final String TOAST = "toast";
 
     public static final String NO_DEVICE_CONNECTED = "No Connection";
+    public static final String BT_SEARCH = "Scanning for Bluetooth Devices";
+    public static final String BT_TRY_CONNECT = "Attempting to Connect to Selected Bluetooth Device";
+    public static final String BT_FAIL_CONNECT = "Failed to Connect to Selected Bluetooth Device. Please Try Again!\nNo Connection";
 
 }

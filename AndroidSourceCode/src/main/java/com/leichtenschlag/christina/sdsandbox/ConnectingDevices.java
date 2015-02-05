@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
-import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -83,6 +82,11 @@ public class ConnectingDevices {
                 // until it succeeds or throws an exception
                 mmSocket.connect();
             } catch (IOException connectException) {
+
+                // If i get here I know that my connection failed, except since this isn't the UI thread I can't tell the screen that. =b
+                // Set textview so user knows connection attempt failed.
+//                MainActivity.connectionStatus.setText(Constants.BT_FAIL_CONNECT);
+
                 // Unable to connect; close the socket and get out
                 try {
                     mmSocket.close();
@@ -175,23 +179,19 @@ public class ConnectingDevices {
     }
 
     public synchronized void connect(BluetoothDevice device) {
-        Log.v("ConnectedThread", "connect");
         bconnectthreadstart = true;
         mConnectThread = new ConnectThread(device);
         mConnectThread.start();
     }
 
     public synchronized void connected(BluetoothSocket socket) {
-        Log.v("ConnectedThread", "connected");
-
-        String t = "test message";
-        //t.getBytes(); // byte array
-
-        //mHandler.obtainMessage(Constants.MESSAGE_TOAST, t.getBytes().length, -1, t.getBytes()).sendToTarget();
         mHandler.obtainMessage(Constants.CONNECTION_ESTABLISHED).sendToTarget();
-
         bconnectedsynchronized = true;
         mConnectedThread = new ConnectedThread(socket);
         mConnectedThread.start();
+    }
+
+    public synchronized void disconnect() {
+        mConnectedThread.cancel();
     }
 }

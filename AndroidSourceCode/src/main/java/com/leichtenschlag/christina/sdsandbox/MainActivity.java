@@ -32,9 +32,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static BluetoothDevice device = null;
     static String btDeviceName = null, availableWifiNetworks = null;
     static CommandFragment commandFrag;
-
-    private TextView connectionStatus;
-    SelectNetworkDialog networkDialog;
+    static TextView connectionStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -266,7 +264,10 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_bt_disconnect) {
+            // User clicked on Disconnect from Bluetooth Device.
+            mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
+            mConnectingDevices.disconnect(); // Stop thread for BT comm.
             return true;
         }
 
@@ -302,4 +303,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         // Tell wifly a password.
         Log.v("user has entered a password", p);
     }
+
+
 }

@@ -41,6 +41,8 @@ public class BluetoothFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, final View view, int position, long id) {
                 // We've clicked on an item; now what?
 
+                MainActivity.connectionStatus.setText(Constants.BT_TRY_CONNECT); // Set textview so user can see what's going on.
+
                 // Cancel discovery because it's costly and we're about to connect
                 MainActivity.mBluetoothAdapter.cancelDiscovery();
 
@@ -70,10 +72,10 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
 
+                MainActivity.connectionStatus.setText(Constants.BT_SEARCH);
                 if (MainActivity.mBluetoothAdapter.isDiscovering()) {
                     MainActivity.mBluetoothAdapter.cancelDiscovery();
                 }
-
 
                 // Begin discovering devices.
                 MainActivity.mBluetoothAdapter.startDiscovery();
@@ -85,6 +87,8 @@ public class BluetoothFragment extends Fragment {
         bt_stop_scanning.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                MainActivity.connectionStatus.setText(Constants.NO_DEVICE_CONNECTED);
                 if (MainActivity.mBluetoothAdapter.isDiscovering()) {
                     MainActivity.mBluetoothAdapter.cancelDiscovery();
                 }
