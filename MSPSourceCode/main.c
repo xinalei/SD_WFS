@@ -13,7 +13,7 @@ void sendCharsToTerm(char data[]);
 
 char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
-int wiflyLastRec=0, networkLastRec=0;
+int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
 int bool_scanning=0,bool_password=0,bool_join=0; // boolean 0=false 1=true
 
 volatile int wiflyCommand = 0; // false
@@ -105,6 +105,8 @@ void parseConnectionData()
 	bool_password=0;
 	resetBuffers();
 
+	while (!(UCA1IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
+	UCA1TXBUF = pos;
 
 }
 
@@ -203,6 +205,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 
 		if(1==bool_password) // We're expecxting a password to be returned; put it in buffer
 		{
+			if('\n'==UCA1RXBUF) passwordCount++;
 			wiflyBuffer[wiflyLastRec++] = UCA1RXBUF; // put char into buffer.
 			if(wiflyLastRec > BUFFER_SIZE-1)
 			{
@@ -211,7 +214,8 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 
 			// Check for password stopping condition - null
 			// ** NOTE password stopping condition being sent from android device.
-			if(wiflyLastRec>0 && '*' == wiflyBuffer[wiflyLastRec-1])
+//			if(wiflyLastRec>0 && 0x18 == wiflyBuffer[wiflyLastRec-1])
+			if(passwordCount >= 2) // count newlines
 			{
 				// Parse data for password and position in list of networks
 				parseConnectionData();
@@ -244,6 +248,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		{
 			// Collect next incoming characters (A0_RX) until \0 for network password & position
 			bool_password=1;
+			passwordCount=0;
 		}
 		else if('G' == UCA1RXBUF)
 		{
