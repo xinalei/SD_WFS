@@ -18,7 +18,7 @@ public class CommandFragment extends Fragment {
 
 
     private Button send_command, clear_log;
-    private Button enter_CM, exit_CM, reboot, scan;
+    private Button enter_CM, exit_CM, reboot, scan, rssi, show, setup;
     private TextView command_log;
     private StringBuilder log, scan_data;
     private ScrollView log_container;
@@ -40,6 +40,9 @@ public class CommandFragment extends Fragment {
         exit_CM = (Button) rootView.findViewById(R.id.button_wiflyexit);
         reboot = (Button) rootView.findViewById(R.id.button_wiflyreboot);
         scan = (Button) rootView.findViewById(R.id.button_wiflyscan);
+        rssi = (Button) rootView.findViewById(R.id.button_wiflyRSSI);
+        show = (Button) rootView.findViewById(R.id.button_wiflyshownet);
+        setup = (Button) rootView.findViewById(R.id.button_wiflysetup);
 
         log = new StringBuilder();
         scan_data = new StringBuilder();
@@ -47,7 +50,7 @@ public class CommandFragment extends Fragment {
         enter_CM.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.mConnectingDevices.write("W".getBytes()); // sends data to device
+                MainActivity.mConnectingDevices.write("W".getBytes()); // sends data to MSP
                 updateLog("$$$", false);
             }
         });
@@ -55,7 +58,7 @@ public class CommandFragment extends Fragment {
         exit_CM.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.mConnectingDevices.write("E".getBytes()); // sends data to device
+                MainActivity.mConnectingDevices.write("E".getBytes()); // sends data to MSP
                 updateLog("exit", false);
             }
         });
@@ -63,7 +66,7 @@ public class CommandFragment extends Fragment {
         reboot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.mConnectingDevices.write("R".getBytes()); // sends data to device
+                MainActivity.mConnectingDevices.write("R".getBytes()); // sends data to MSP
                 updateLog("reboot", false);
             }
         });
@@ -74,6 +77,30 @@ public class CommandFragment extends Fragment {
                 obtain_sd = true; // If command == scan, then start adding received data to a buffer.
                 MainActivity.mConnectingDevices.write("S".getBytes()); // sends data to device
                 updateLog("scan", false);
+            }
+        });
+
+        rssi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainActivity.mConnectingDevices.write("G".getBytes()); // sends data to device
+                updateLog("rssi", false);
+            }
+        });
+
+        show.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainActivity.mConnectingDevices.write("N".getBytes()); // sends data to device
+                updateLog("show net", false);
+            }
+        });
+
+        setup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainActivity.mConnectingDevices.write("C".getBytes()); // sends data to device
+                updateLog("setup", false);
             }
         });
 

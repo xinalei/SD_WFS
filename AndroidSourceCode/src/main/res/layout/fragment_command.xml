@@ -50,6 +50,24 @@
             android:text="Reboot Wifly Module"
             android:id="@+id/button_wiflyreboot"/>
 
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="RSSI"
+            android:id="@+id/button_wiflyRSSI"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="show net"
+            android:id="@+id/button_wiflyshownet"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="command setup"
+            android:id="@+id/button_wiflysetup"/>
+
     </LinearLayout>
 
     <ScrollView

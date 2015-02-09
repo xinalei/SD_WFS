@@ -28,9 +28,10 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static BluetoothAdapter mBluetoothAdapter;
     static ListView btDeviceList;
     static ArrayAdapter<String> btArrayAdapter;
-    static ConnectingDevices mConnectingDevices = null;
-    static BluetoothDevice device = null;
-    static String btDeviceName = null, availableWifiNetworks = null;
+    static ConnectingDevices mConnectingDevices=null;
+    static BluetoothDevice device=null;
+    static String btDeviceName=null, availableWifiNetworks = null,
+            userSelectedNetwork=null, userSelectedNetworkPos=null;
     static CommandFragment commandFrag;
     static TextView connectionStatus;
 
@@ -211,9 +212,10 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     // Now put back bluetooth fragment
                     setupBluetoothFragment();
 
+                    btDeviceName = null;
+
                     if(null != context) {
                         Toast.makeText(context, "Lost Bluetooth connection. Please reconnect to a device.", Toast.LENGTH_LONG).show();
-                        // this doesn't exactly work.
                     }
                     break;
             }
@@ -265,9 +267,13 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_bt_disconnect) {
-            // User clicked on Disconnect from Bluetooth Device.
-            mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
-            mConnectingDevices.disconnect(); // Stop thread for BT comm.
+
+            if(null != btDeviceName) {
+                // User clicked on Disconnect from Bluetooth Device.
+                mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
+                mConnectingDevices.disconnect(); // Stop thread for BT comm.
+                btDeviceName = null;
+            }
             return true;
         }
 
@@ -276,9 +282,11 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
 
     // Methods that must be implemented
-    public void wifiNetworkSelected(String ssid) {
+    public void wifiNetworkSelected(String ssid, String position) {
 
-        Log.v("wifiNetworkSelected", "user selected " + ssid);
+        userSelectedNetwork = ssid;
+        userSelectedNetworkPos = position;
+        Log.v("wifiNetworkSelected", "user selected " + ssid + " at position " +position );
         // Prompt user for a password.
 
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
@@ -302,6 +310,15 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
         // Tell wifly a password.
         Log.v("user has entered a password", p);
+
+        // Send 'P' for Password command
+        mConnectingDevices.write("P".getBytes()); // sends data to MSP
+
+        // Send password \n networkPos \n cutoffChar
+        String pwData = p + "\n" + userSelectedNetworkPos + "\n" + String.valueOf(0x18);
+        mConnectingDevices.write(pwData.getBytes()); // send password to MSP
+        commandFrag.updateLog("sending pw " + p + "and network num " +userSelectedNetworkPos, false);
+
     }
 
 

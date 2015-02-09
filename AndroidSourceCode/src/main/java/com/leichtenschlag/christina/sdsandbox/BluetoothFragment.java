@@ -92,6 +92,9 @@ public class BluetoothFragment extends Fragment {
                 if (MainActivity.mBluetoothAdapter.isDiscovering()) {
                     MainActivity.mBluetoothAdapter.cancelDiscovery();
                 }
+
+                MainActivity.btArrayAdapter.clear();
+                MainActivity.btArrayAdapter.notifyDataSetChanged();
             }
         });
 

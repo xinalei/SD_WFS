@@ -30,7 +30,7 @@ public class SelectNetworkDialog extends DialogFragment {
     // Interface; these methods are implemented by the MainActivity, allowing communication
     // between this dialog and the MainActivity.
     public interface NetworkSelectListener {
-        void wifiNetworkSelected(String ssid);
+        void wifiNetworkSelected(String ssid, String position);
     }
 
     public static SelectNetworkDialog newInstance(String s) {
@@ -61,7 +61,7 @@ public class SelectNetworkDialog extends DialogFragment {
         // index is at the newline for line containing "numnetworks\n"
         index++;
 
-        int numnetworks = Integer.valueOf(curr.toString());
+        int numnetworks = Integer.valueOf(curr.toString().trim());
         Log.v("numnetworks",String.valueOf(numnetworks));
         //index++; // move past initial newline.
 
@@ -109,7 +109,7 @@ public class SelectNetworkDialog extends DialogFragment {
                 Log.v("listener for networks adapter, user selected:", ssid);
                 dismiss();
 
-                mListener.wifiNetworkSelected(ssid);
+                mListener.wifiNetworkSelected(ssid, String.valueOf(position+1));
             }
         });
 
