@@ -4,15 +4,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include "buffer_c.h"
+#include "password.h"
 
 #define BUFFER_SIZE 2000
-#define NETWORK_SIZE 5
 
 void sendCharsToWifly(char data[]);
+void sendCharsToTerm(char data[]);
 
 char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
-char network[NETWORK_SIZE];
 int wiflyLastRec=0, networkLastRec=0;
 int bool_scanning=0,bool_password=0,bool_join=0; // boolean 0=false 1=true
 
@@ -41,9 +41,6 @@ int main(void)
 	UCA1MCTL |= UCBRS_1 + UCBRF_0;   // Modln UCBRSx=0, UCBRFx=0,
 	UCA1CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
 	UCA1IE |= UCRXIE;                         // Enable USCI_A1 RX interrupt
-
-	int j;
-	for(j=0; j<networkLastRec; j++) network[j] = '\0';
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
@@ -80,6 +77,37 @@ void parseScanData()
 	resetBuffers();
 }
 
+void parseConnectionData()
+{
+	// Pass the input to password.pw_parse
+	char pos = ')';
+	pos = pw_parse(wiflyBuffer,parsed);
+
+	// First issue the password command.
+	sendCharsToWifly("set wlan pass ");
+
+	// Send the actual password
+	char *ptr = parsed;
+	while('\0' != *ptr)
+	{
+		while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
+		UCA0TXBUF = *ptr;
+		ptr++;
+	}
+	sendCharsToWifly("\n\r");
+
+	// Now issue the join command
+	sendCharsToWifly("join # ");
+	while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
+	UCA0TXBUF = pos;
+	sendCharsToWifly("\n\r");
+
+	bool_password=0;
+	resetBuffers();
+
+
+}
+
 void sendCharsToWifly(char data[])
 {
 	int j;
@@ -90,6 +118,16 @@ void sendCharsToWifly(char data[])
 	}
 }
 
+
+void sendCharsToTerm(char data[])
+{
+	int j;
+	for(j=0; j<strlen(data); j++)
+	{
+		while (!(UCA1IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
+		UCA1TXBUF = data[j];
+	}
+}
 
 void wiflySetup()
 {
@@ -115,6 +153,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 
 	  if(1==bool_scanning) // We're expecting scan data to be returned; put it in the buffer.
 	  {
+		  wiflyCommand=0;
 		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
 		  if(wiflyLastRec > BUFFER_SIZE-1)
 		  {
@@ -126,62 +165,9 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 							  && ('N'==wiflyBuffer[wiflyLastRec-2])
 							  && ('E'==wiflyBuffer[wiflyLastRec-3]) )
 		  {
-			  // Parse the data & then send parsed data to Bluetooth.
-			  parseScanData();
-		  }
-	  }
-	  else if(1==bool_password) // We're expexting a password to be returned; put it in buffer
-	  {
-		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
-		  if(wiflyLastRec > BUFFER_SIZE-1)
-		  {
-			  wiflyLastRec = 0;
-		  }
+			  wiflyCommand=1; // Redirect all chars to Wifly again
 
-		  // Check for password stopping condition - newline (prevents password from being printed)
-		  if(wiflyLastRec>0 && '\n' == wiflyBuffer[wiflyLastRec-1])
-		  {
-			  // Send password to wifly
-			  sendCharsToWifly("set wlan pass ");
-
-			  int j=0;
-			  while('\n' != wiflyBuffer[j])
-			  {
-				  while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
-				  UCA0TXBUF = wiflyBuffer[j++];
-			  }
-			  sendCharsToWifly("\n\r");
-
-			  bool_password=0;
-			  resetBuffers();
-		  }
-	  }
-	  else if(1==bool_join) // We're expecting a 1 or 2 digit number for the network.
-	  {
-		  network[networkLastRec++] = UCA0RXBUF; // put char into buffer.
-		  if(networkLastRec > NETWORK_SIZE-1)
-		  {
-			  networkLastRec=0;
-		  }
-
-		  // Check for stopping condition - newline
-		  if(networkLastRec>0 && '\n' == network[networkLastRec-1])
-		  {
-			  // Tell wifly to join network.
-			  sendCharsToWifly("join # ");
-
-			  int j=0;
-			  while('\n' != network[j])
-			  {
-				  while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
-				  UCA0TXBUF = network[j++];
-			  }
-			  sendCharsToWifly("\n\r");
-
-			  bool_join=0;
-			  for(j=0; j<networkLastRec; j++) network[j] = '\0';
-			  networkLastRec=0;
-
+			  parseScanData(); // Parse the data & then send parsed data to Bluetooth.
 		  }
 	  }
 	  else // Send the char received from Wifly to Bluetooth
@@ -214,7 +200,25 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 
 		//scanning = 0; // Turn off logic that saves A0_RX characters into the buffer
 
-		if('W' == UCA1RXBUF) {
+
+		if(1==bool_password) // We're expecxting a password to be returned; put it in buffer
+		{
+			wiflyBuffer[wiflyLastRec++] = UCA1RXBUF; // put char into buffer.
+			if(wiflyLastRec > BUFFER_SIZE-1)
+			{
+				wiflyLastRec = 0;
+			}
+
+			// Check for password stopping condition - null
+			// ** NOTE password stopping condition being sent from android device.
+			if(wiflyLastRec>0 && '*' == wiflyBuffer[wiflyLastRec-1])
+			{
+				// Parse data for password and position in list of networks
+				parseConnectionData();
+
+			}
+		}
+		else if('W' == UCA1RXBUF) {
 			// we want to directly send commands to the wifly module from now on.
 			wiflyCommand = 1;
 			sendCharsToWifly("$$$"); // Snd "$$$" to wifly
@@ -238,18 +242,18 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		}
 		else if('P' == UCA1RXBUF)
 		{
-			// Collect next incoming characters (A0_RX) until newline for network password.
+			// Collect next incoming characters (A0_RX) until \0 for network password & position
 			bool_password=1;
-		}
-		else if('J' == UCA1RXBUF)
-		{
-			// need to get the number from the list
-			bool_join=1;
 		}
 		else if('G' == UCA1RXBUF)
 		{
 			// Show rssi!!
 			sendCharsToWifly("show rssi\n\r");
+		}
+		else if('N' == UCA1RXBUF)
+		{
+			// Show net
+			sendCharsToWifly("show net\n\r");
 		}
 		else {
 
