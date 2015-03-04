@@ -23,7 +23,6 @@ public class CommandFragment extends Fragment {
     private StringBuilder log, scan_data;
     private ScrollView log_container;
     boolean obtain_sd = false;
-    Integer numNetworks;
 
     public CommandFragment() {
     }

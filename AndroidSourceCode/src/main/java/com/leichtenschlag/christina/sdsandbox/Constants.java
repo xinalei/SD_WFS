@@ -23,4 +23,8 @@ public interface Constants {
     public static final String BT_TRY_CONNECT = "Attempting to Connect to Selected Bluetooth Device";
     public static final String BT_FAIL_CONNECT = "Failed to Connect to Selected Bluetooth Device. Please Try Again!\nNo Connection";
 
+    public static final String TITLE_BLUETOOTH = "Bluetooth Setup";
+    public static final String TITLE_WIFI = "Wireless Network Setup";
+    public static final String TITLE_CAMERA = "IP Camera Setup";
+
 }

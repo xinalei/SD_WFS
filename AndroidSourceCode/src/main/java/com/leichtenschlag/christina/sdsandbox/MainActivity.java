@@ -17,13 +17,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener, PasswordDialog.PasswordListener
+public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener, PasswordDialog.PasswordListener, VideoSetupFragment.VideoFragmentListener
 {
     static BluetoothAdapter mBluetoothAdapter;
     static ListView btDeviceList;
@@ -31,9 +32,11 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static ConnectingDevices mConnectingDevices=null;
     static BluetoothDevice device=null;
     static String btDeviceName=null, availableWifiNetworks = null,
-            userSelectedNetwork=null, userSelectedNetworkPos=null;
+            userSelectedNetwork=null, userSelectedNetworkPos=null,
+            ip = "http://wfs:group30@192.168.1.19/image.jpg";
     static CommandFragment commandFrag;
-    static TextView connectionStatus;
+    static TextView connectionStatus, title;
+    static WebView videoFeed=null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +55,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         mConnectingDevices = new ConnectingDevices(mHandler);
         // Specify TextView
         connectionStatus = (TextView) findViewById(R.id.textView_connectionstatus);
+        title = (TextView) findViewById(R.id.textView_maintitle);
+        title.setText(Constants.TITLE_BLUETOOTH); // set title of screen.
 
         // Set up bluetooth adapter stuff.
         setupBluetoothFragment();
@@ -144,54 +149,56 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                 case Constants.MESSAGE_STATE_CHANGE:
                     break;
                 case Constants.MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the buffer
-                    String writeMessage = new String(writeBuf);
+//                    byte[] writeBuf = (byte[]) msg.obj;
+//                    // construct a string from the buffer
+//                    String writeMessage = new String(writeBuf);
 //                    mConversationArrayAdapter.add("Me:  " + writeMessage);
                     break;
-                case Constants.MESSAGE_READ:
+                case Constants.MESSAGE_READ: // We've received data from the Wifly module.
+
+                    // Construct a string from the valid bytes in the buffer
                     byte[] readBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
 
-                    if(commandFrag.obtain_sd) {
-                        // First add message to commandFrag variable
-                        commandFrag.updateScanLog(readMessage);
+                    if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
 
+                        commandFrag.updateScanLog(readMessage); // First add message to commandFrag variable
                         // Have we collected data for all the networks?
                         // TODO: Implement a timeout in case we lose data (?!??!)
                         if(commandFrag.determineIfDoneCollecting()) {
                             // Done collecting.
                             availableWifiNetworks = commandFrag.stopCollectingScanData();
-                            selectANetwork();
+                            selectANetwork(); // Open dialog for user to select a network from list.
                         }
-                    } else {
+                    } else { // It's not scan data. Just put it in the log.
                         commandFrag.updateLog(readMessage, true);
                     }
 
                     break;
-                case Constants.MESSAGE_DEVICE_NAME:
-                    // save the connected device's name
+                case Constants.MESSAGE_DEVICE_NAME: // Save the connected device's name
+
                     String mConnectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
                     if (null != context) {
                         Toast.makeText(context, "Connected to " + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     }
                     break;
-                case Constants.MESSAGE_TOAST:
+                case Constants.MESSAGE_TOAST: // Make a Toast message
 
                     if(null != context) {
                         Toast.makeText(context, msg.getData().getString(Constants.TOAST), Toast.LENGTH_SHORT).show();
                         // this doesn't exactly work.
                     }
                     break;
-                case Constants.CONNECTION_ESTABLISHED:
+                case Constants.CONNECTION_ESTABLISHED: // BT Connection has been made.
                     if(null != context) {
                         connectionStatus.setText("Connection Established with " + btDeviceName);
-                        enterCommandMode();
+
+                        addVideoSetupFragment();//addCommandFragment();
                     }
                     break;
                 case Constants.DISCONNECT: // Lost connection with bluetooth module.
-                    // First replace command fragment with bluetooth fragment
+
+                    title.setText(Constants.TITLE_BLUETOOTH); // Set title to indicate lost connection
 
                     // Kill SelectNetworkDialog if it exists.
                     Fragment f = getSupportFragmentManager().findFragmentByTag("dialog_selectnetwork");
@@ -205,13 +212,13 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                         getSupportFragmentManager().beginTransaction().remove(f).commit();
                     }
 
-                    // Back to the main activity!
+                    // Back to the main activity! i.e. replace bluetooth fragment.
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.mainactivity_container, new BluetoothFragment())
                             .commitAllowingStateLoss();
+
                     // Now put back bluetooth fragment
                     setupBluetoothFragment();
-
                     btDeviceName = null;
 
                     if(null != context) {
@@ -222,12 +229,21 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         }
     };
 
-    // We've successfully "connected to" another device, so open up the command window!
-    private void enterCommandMode() {
+    // Add fragment for video setup.
+    private void addVideoSetupFragment() {
+        VideoSetupFragment vFrag = VideoSetupFragment.newInstance();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.mainactivity_container, vFrag).commit();
+        title.setText(Constants.TITLE_CAMERA);
+    }
+
+    // Open up the command window! Replace current fragment with command frag.
+    private void addCommandFragment() {
         commandFrag = new CommandFragment();
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.mainactivity_container, commandFrag)
                 .commit();
+        title.setText(Constants.TITLE_WIFI);
     }
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
@@ -273,6 +289,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                 mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
                 mConnectingDevices.disconnect(); // Stop thread for BT comm.
                 btDeviceName = null;
+                title.setText(Constants.TITLE_BLUETOOTH);
             }
             return true;
         }
@@ -314,12 +331,19 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         // Send 'P' for Password command
         mConnectingDevices.write("P".getBytes()); // sends data to MSP
 
-        // Send password \n networkPos \n cutoffChar
+        // Send "password \n networkPos \n cutoffChar"
         String pwData = p + "\n" + userSelectedNetworkPos + "\n" + String.valueOf(0x18);
         mConnectingDevices.write(pwData.getBytes()); // send password to MSP
         commandFrag.updateLog("sending pw " + p + "and network num " +userSelectedNetworkPos, false);
 
+
+        // Now change the screen to manual control.
+
     }
 
+    public void camSetupComplete(String ipaddr) {
+        this.ip = ipaddr;
+        addCommandFragment();
+    }
 
 }
