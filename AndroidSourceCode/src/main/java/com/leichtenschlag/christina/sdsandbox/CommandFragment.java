@@ -76,6 +76,10 @@ public class CommandFragment extends Fragment {
                 obtain_sd = true; // If command == scan, then start adding received data to a buffer.
                 MainActivity.mConnectingDevices.write("S".getBytes()); // sends data to device
                 updateLog("scan", false);
+
+                // Start spinner.
+                MainActivity.loadFrag = LoadingDialogFragment.newInstance();
+                MainActivity.loadFrag.show(getActivity().getSupportFragmentManager(), "loadingFragment");
             }
         });
 
@@ -149,6 +153,11 @@ public class CommandFragment extends Fragment {
         updateLog("<< Received network data >>", true);
         scan_data.setLength(0); // Reset
 
+        if(MainActivity.loadFrag != null) {
+            MainActivity.loadFrag.dismiss();
+            MainActivity.loadFrag = null;
+        }
+
         return sd;
     }
 
@@ -161,7 +170,7 @@ public class CommandFragment extends Fragment {
         }
 
         try{
-            int expectedNumNetworks = Integer.valueOf( n.toString().trim() );
+            Integer expectedNumNetworks = Integer.valueOf( n.toString().trim() );
 
             int count = 0;
             for(char ch : scan_data.toString().toCharArray()) {
@@ -169,7 +178,7 @@ public class CommandFragment extends Fragment {
             }
 
 
-            if(count == 1+expectedNumNetworks) {
+            if(null != expectedNumNetworks && count == 1+expectedNumNetworks) {
                 // We're done.
                 return true;
             }
@@ -178,7 +187,7 @@ public class CommandFragment extends Fragment {
             }
 
         } catch (Exception e) {
-            updateLog("ERROR: Something went wrong with the data. Try scanning again!", true);
+            updateLog("ERROR: Something went wrong with the data. Try scanning again! \""+n.toString()+"\"", true);
             stopCollectingScanData(); // Stop collecting!
             return false;
         }

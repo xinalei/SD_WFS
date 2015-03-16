@@ -37,6 +37,10 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static CommandFragment commandFrag;
     static TextView connectionStatus, title;
     static WebView videoFeed=null;
+    static LoadingDialogFragment loadFrag=null;
+
+
+    /// Android Activity Functions /////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,24 +67,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
         // Register receiver
         registerReceiver(ActionFoundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-    }
-
-    private void setupBluetoothFragment() {
-        // Get the Android device's bluetooth radio. We need bluetooth for this to work!
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) {
-            // Device does not support Bluetooth
-            this.finish(); // kill the app
-        }
-
-        // Set TextView connectionStatus
-        connectionStatus.setText(Constants.NO_DEVICE_CONNECTED);
-
-        // At this point we have the Android device's bluetooth radio. Now make sure bluetooth is ON.
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, Constants.REQUEST_ENABLE_BT);
-        }
     }
 
     @Override
@@ -120,6 +106,32 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
         unregisterReceiver(ActionFoundReceiver);
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_bt_disconnect) {
+
+            if(null != btDeviceName) {
+                // User clicked on Disconnect from Bluetooth Device.
+                mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
+                mConnectingDevices.disconnect(); // Stop thread for BT comm.
+                btDeviceName = null;
+                title.setText(Constants.TITLE_BLUETOOTH);
+            }
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+
+    /// User-Defined Class Variables /////////////////////////////////////////////////////////////////////////////////////
 
     // Class variable, for when we discover bluetooth devices.
     private final BroadcastReceiver ActionFoundReceiver = new BroadcastReceiver() {
@@ -229,6 +241,27 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         }
     };
 
+
+    /// User-Defined Methods /////////////////////////////////////////////////////////////////////////////////////
+
+    private void setupBluetoothFragment() {
+        // Get the Android device's bluetooth radio. We need bluetooth for this to work!
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) {
+            // Device does not support Bluetooth
+            this.finish(); // kill the app
+        }
+
+        // Set TextView connectionStatus
+        connectionStatus.setText(Constants.NO_DEVICE_CONNECTED);
+
+        // At this point we have the Android device's bluetooth radio. Now make sure bluetooth is ON.
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, Constants.REQUEST_ENABLE_BT);
+        }
+    }
+
     // Add fragment for video setup.
     private void addVideoSetupFragment() {
         VideoSetupFragment vFrag = VideoSetupFragment.newInstance();
@@ -245,6 +278,15 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                 .commit();
         title.setText(Constants.TITLE_WIFI);
     }
+
+
+//    // Remove the spinner dialog.
+//    public void doneLoading() {
+//        if( loadFrag != null ) {
+//            loadFrag.dismiss();
+//            loadFrag = null;
+//        }
+//    }
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
@@ -274,30 +316,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         availableWifiNetworks = null; // reset to null.
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_bt_disconnect) {
-
-            if(null != btDeviceName) {
-                // User clicked on Disconnect from Bluetooth Device.
-                mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
-                mConnectingDevices.disconnect(); // Stop thread for BT comm.
-                btDeviceName = null;
-                title.setText(Constants.TITLE_BLUETOOTH);
-            }
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-
     // Methods that must be implemented
     public void wifiNetworkSelected(String ssid, String position) {
 
@@ -326,7 +344,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     public void updatePassword(String p) {
 
         // Tell wifly a password.
-        Log.v("user has entered a password", p);
+        Log.v("user has entered a pw", p);
 
         // Send 'P' for Password command
         mConnectingDevices.write("P".getBytes()); // sends data to MSP

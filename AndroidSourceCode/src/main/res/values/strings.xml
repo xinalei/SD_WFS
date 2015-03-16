@@ -13,5 +13,6 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
     <string name="videoSetup">IP Camera Setup</string>
+    <string name="loadingMsg">Retrieving Available Networks...</string>
 
 </resources>

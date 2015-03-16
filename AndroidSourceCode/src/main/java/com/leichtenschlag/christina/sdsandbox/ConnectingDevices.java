@@ -8,6 +8,7 @@ import android.os.Handler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class ConnectingDevices {
@@ -150,7 +151,8 @@ public class ConnectingDevices {
 
                     // Send the obtained bytes to the UI activity
                     // We've received a message from the Wifly module!
-                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer).sendToTarget();
+                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1,
+                            Arrays.copyOf(buffer, bytes)).sendToTarget();
 
                 } catch (IOException e) {
                     break;
