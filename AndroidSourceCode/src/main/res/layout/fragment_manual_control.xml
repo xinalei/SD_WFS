@@ -9,14 +9,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/rssiText"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textSize="@dimen/abc_text_size_large_material" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/textView_signalstrength"
         android:text="@string/rssiVal"
-        android:gravity="center"/>
+        android:gravity="center"
+        android:textSize="@dimen/abc_text_size_large_material"
+        android:layout_marginBottom="6dp" />
 
 
     <Button
@@ -26,14 +29,17 @@
         android:layout_gravity="center"
         android:text="@string/autoalg_but"/>
 
+
     <WebView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="5dp"
         android:id="@+id/webview_videofeed"
-        android:layout_gravity="center">
+        android:layout_gravity="center"
+        android:textAlignment="center">
 
-        </WebView>
+    </WebView>
+
 
     <RelativeLayout
         android:layout_width="fill_parent"

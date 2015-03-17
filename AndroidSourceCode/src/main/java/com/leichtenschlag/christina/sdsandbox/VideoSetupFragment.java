@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +27,7 @@ public class VideoSetupFragment extends Fragment {
     private Button refrehCam, finish;
     private Timer videoTimer;
     String ipaddr;
+    WebView videoFeed;
 
     public static VideoSetupFragment newInstance() {
         VideoSetupFragment fragment = new VideoSetupFragment();
@@ -57,7 +59,7 @@ public class VideoSetupFragment extends Fragment {
         finish = (Button) rootView.findViewById(R.id.button_finishvideosetup);
 
         // Video feed is held by the main activity.
-        MainActivity.videoFeed = (WebView) rootView.findViewById(R.id.webview_videofeed);
+        videoFeed = (WebView) rootView.findViewById(R.id.webview_setupvideofeed);
 
 
         refrehCam.setOnClickListener(new View.OnClickListener() {
@@ -92,11 +94,11 @@ public class VideoSetupFragment extends Fragment {
                     @Override
                     public void run() {
                         // Update the video feed.
-                        MainActivity.videoFeed.loadUrl(MainActivity.ip);
+                        videoFeed.loadUrl(MainActivity.ip);
                     }
                 });
             }
-        }, 0, 500);//refresh rate time interval (ms)
+        }, 0, 600);//refresh rate time interval (ms)
         // Can't go much faster, else nothing actually loads.
     }
 

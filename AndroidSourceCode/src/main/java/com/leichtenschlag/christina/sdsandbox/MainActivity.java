@@ -35,10 +35,13 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static BluetoothDevice device=null;
     static String btDeviceName=null, availableWifiNetworks = null,
             userSelectedNetwork=null, userSelectedNetworkPos=null,
-            ip = "http://wfs:group30@192.168.1.19/image.jpg";
-    static CommandFragment commandFrag;
+            ip = "http://wfs:group30@192.168.1.19/image.jpg",
+            currentRSSI=null;
     static TextView connectionStatus, title;
-    static WebView videoFeed=null;
+//    static WebView videoFeed=null;
+
+    // Fragments
+    static CommandFragment commandFrag;
     static LoadingDialogFragment loadFrag=null;
 
 
@@ -179,12 +182,26 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                         commandFrag.updateScanLog(readMessage); // First add message to commandFrag variable
                         // Have we collected data for all the networks?
                         // TODO: Implement a timeout in case we lose data (?!??!)
-                        if(commandFrag.determineIfDoneCollecting()) {
+                        if(commandFrag.determineIfDoneScanning()) {
                             // Done collecting.
                             availableWifiNetworks = commandFrag.stopCollectingScanData();
                             selectANetwork(); // Open dialog for user to select a network from list.
                         }
-                    } else { // It's not scan data. Just put it in the log.
+                    }
+                    else if(commandFrag.obtain_rssi) { // Retrieve the RSSI value
+                        commandFrag.updateRSSILog(readMessage); // First add message to commandFrag variable
+
+                        String rssi = commandFrag.determineIfReceivedRSSI();
+                        if(null != rssi && 0 != rssi.length()) {
+                            // got a value!
+                            // if it's 0 we're not connected to anything.
+                            if(rssi.contains("-")) {
+                                Log.v("received rssi!", "value = " +rssi);
+                                currentRSSI = rssi;
+                            }
+                        }
+                    }
+                    else { // It's not scan data. Just put it in the log.
                         commandFrag.updateLog(readMessage, true);
                     }
 
@@ -268,7 +285,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     private void addVideoSetupFragment() {
         VideoSetupFragment vFrag = VideoSetupFragment.newInstance();
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.mainactivity_container, vFrag).commit();
+                .replace(R.id.mainactivity_container, vFrag)
+                .commit();
         title.setText(Constants.TITLE_CAMERA);
     }
 
@@ -281,6 +299,14 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         title.setText(Constants.TITLE_WIFI);
     }
 
+    public void addManualControlFragment() {
+
+        ManualControlFragment manFrag = ManualControlFragment.newInstance();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.mainactivity_container, manFrag)
+                .commit();
+        title.setText(Constants.TITLE_MANUAL);
+    }
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
@@ -321,7 +347,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
         userSelectedNetwork = ssid;
         userSelectedNetworkPos = position;
-        Log.v("wifiNetworkSelected", "user selected " + ssid + " at position " +position );
         // Prompt user for a password.
 
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
@@ -349,14 +374,14 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         // Send 'P' for Password command
         mConnectingDevices.write("P".getBytes()); // sends data to MSP
 
-        // Send "password \n networkPos \n cutoffChar"
-        String pwData = p + "\n" + userSelectedNetworkPos + "\n";// + String.valueOf(0x18);
+        // Send "password \n networkPos \n"
+        String pwData = p + "\n" + userSelectedNetworkPos + "\n"; // construct pw data.
         mConnectingDevices.write(pwData.getBytes()); // send password to MSP
         commandFrag.updateLog("sending pw " + p + "and network num " +userSelectedNetworkPos, false);
 
 
         // Now change the screen to manual control.
-
+//        addManualControlFragment();
     }
 
     public void camSetupComplete(String ipaddr) {

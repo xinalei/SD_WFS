@@ -1,9 +1,7 @@
 package com.leichtenschlag.christina.sdsandbox;
 
-import android.app.Activity;
-import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,15 +11,23 @@ import android.widget.TextView;
 
 import com.leichtenschlag.christina.sdsandbox.R;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class ManualControlFragment extends Fragment {
 
     TextView signalStrength;
     Button forward, left, right, reverse, start;
-    WebView feed;
+    WebView feed = null;
+    Timer feedTimer = null;
 
 
     public ManualControlFragment() {
         // Required empty public constructor
+    }
+
+    public static ManualControlFragment newInstance() {
+        return new ManualControlFragment();
     }
 
     @Override
@@ -42,6 +48,10 @@ public class ManualControlFragment extends Fragment {
         right = (Button) rootView.findViewById(R.id.button_e);
         reverse = (Button) rootView.findViewById(R.id.button_s);
         start = (Button) rootView.findViewById(R.id.button_startAuto);
+
+        if(null != MainActivity.currentRSSI) {
+            signalStrength.setText(MainActivity.currentRSSI);
+        }
 
         forward.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -78,6 +88,23 @@ public class ManualControlFragment extends Fragment {
             }
         });
 
+
+        // Start the video feed.
+        feed = (WebView) rootView.findViewById(R.id.webview_videofeed);
+        feedTimer = new Timer();
+        feedTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Update the video feed.
+                        feed.loadUrl(MainActivity.ip);
+                    }
+                });
+            }
+        }, 0, 600);//refresh rate time interval (ms)
+        // Can't go much faster, else nothing actually loads.
 
         return rootView;
     }

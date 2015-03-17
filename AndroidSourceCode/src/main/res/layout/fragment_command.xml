@@ -35,14 +35,14 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Scan For Wireless Networks"
-            android:id="@+id/button_wiflyscan"/>
+            android:text="command setup"
+            android:id="@+id/button_wiflysetup"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Turn Off Command Mode"
-            android:id="@+id/button_wiflyexit"/>
+            android:text="Scan For Wireless Networks"
+            android:id="@+id/button_wiflyscan"/>
 
         <Button
             android:layout_width="fill_parent"
@@ -65,8 +65,9 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="command setup"
-            android:id="@+id/button_wiflysetup"/>
+            android:text="Complete Wireless Setup"
+            android:id="@+id/button_exitwifisetup"/>
+
 
     </LinearLayout>
 
@@ -86,15 +87,6 @@
             android:layout_marginTop="10dp"/>
 
     </ScrollView>
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/button_clearlog"
-        android:text="Clear Log"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:layout_gravity="center"/>
 
 
 </LinearLayout>

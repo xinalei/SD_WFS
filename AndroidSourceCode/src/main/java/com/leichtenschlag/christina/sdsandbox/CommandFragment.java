@@ -16,13 +16,11 @@ import android.widget.TextView;
  */
 public class CommandFragment extends Fragment {
 
-
-    private Button send_command, clear_log;
-    private Button enter_CM, exit_CM, reboot, scan, rssi, show, setup;
+    private Button enter_CM, reboot, scan, rssi, show, setup, finish;
     private TextView command_log;
-    private StringBuilder log, scan_data;
+    private StringBuilder log, scan_data, rssi_data;
     private ScrollView log_container;
-    boolean obtain_sd = false;
+    boolean obtain_sd = false, obtain_rssi=false;
 
     public CommandFragment() {
     }
@@ -32,33 +30,25 @@ public class CommandFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_command, container, false);
 
-        clear_log = (Button) rootView.findViewById(R.id.button_clearlog);
         command_log = (TextView) rootView.findViewById(R.id.textView_commandlog);
         log_container = (ScrollView) rootView.findViewById(R.id.scrollView_holdlog);
         enter_CM = (Button) rootView.findViewById(R.id.button_wifly$$$);
-        exit_CM = (Button) rootView.findViewById(R.id.button_wiflyexit);
         reboot = (Button) rootView.findViewById(R.id.button_wiflyreboot);
         scan = (Button) rootView.findViewById(R.id.button_wiflyscan);
         rssi = (Button) rootView.findViewById(R.id.button_wiflyRSSI);
         show = (Button) rootView.findViewById(R.id.button_wiflyshownet);
         setup = (Button) rootView.findViewById(R.id.button_wiflysetup);
+        finish = (Button) rootView.findViewById(R.id.button_exitwifisetup);
 
         log = new StringBuilder();
         scan_data = new StringBuilder();
+        rssi_data = new StringBuilder();
 
         enter_CM.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 MainActivity.mConnectingDevices.write("W".getBytes()); // sends data to MSP
                 updateLog("$$$", false);
-            }
-        });
-
-        exit_CM.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MainActivity.mConnectingDevices.write("E".getBytes()); // sends data to MSP
-                updateLog("exit", false);
             }
         });
 
@@ -86,6 +76,7 @@ public class CommandFragment extends Fragment {
         rssi.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                obtain_rssi = true;
                 MainActivity.mConnectingDevices.write("G".getBytes()); // sends data to device
                 updateLog("rssi", false);
             }
@@ -107,12 +98,16 @@ public class CommandFragment extends Fragment {
             }
         });
 
-        // Delete the current log.
-        clear_log.setOnClickListener(new View.OnClickListener() {
+
+        finish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                command_log.setText("");
-                log.setLength(0);
+
+                ManualControlFragment manFrag = ManualControlFragment.newInstance();
+                getActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.mainactivity_container, manFrag)
+                        .commit();
+                MainActivity.title.setText(Constants.TITLE_MANUAL);
             }
         });
 
@@ -147,6 +142,13 @@ public class CommandFragment extends Fragment {
         }
     }
 
+    public void updateRSSILog(String additionalText) {
+
+        if(null != additionalText) {
+            rssi_data.append(additionalText);
+        }
+    }
+
     public String stopCollectingScanData() {
         obtain_sd = false;
         String sd = scan_data.toString();
@@ -161,7 +163,7 @@ public class CommandFragment extends Fragment {
         return sd;
     }
 
-    public boolean determineIfDoneCollecting() {
+    public boolean determineIfDoneScanning() {
 
         StringBuilder n = new StringBuilder();
         for(char ch : scan_data.toString().toCharArray()) {
@@ -191,5 +193,34 @@ public class CommandFragment extends Fragment {
             stopCollectingScanData(); // Stop collecting!
             return false;
         }
+    }
+
+    public String determineIfReceivedRSSI() {
+
+        String rssidata = rssi_data.toString();
+        if(null != rssidata && rssidata.contains("RSSI") && rssidata.contains("dBm")) {
+            // can extract the data.
+
+            Integer start=null, end=null;
+            for(int i=0; i<rssidata.length(); i++) {
+                if('(' == rssidata.charAt(i)) {
+                    start = i+1;
+                }
+                else if(')' == rssidata.charAt(i)) {
+                    end = i;
+                    break;
+                }
+            }
+
+            if(null != start && null != end) {
+                obtain_rssi = false;
+                rssi_data.setLength(0);
+                return rssidata.substring(start, end).trim();
+            }
+            else {
+                return null;
+            }
+        }
+        else return null;
     }
 }

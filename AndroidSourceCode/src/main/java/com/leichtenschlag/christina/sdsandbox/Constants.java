@@ -26,5 +26,6 @@ public interface Constants {
     public static final String TITLE_BLUETOOTH = "Bluetooth Setup";
     public static final String TITLE_WIFI = "Wireless Network Setup";
     public static final String TITLE_CAMERA = "IP Camera Setup";
+    public static final String TITLE_MANUAL = "Manual Mode";
 
 }

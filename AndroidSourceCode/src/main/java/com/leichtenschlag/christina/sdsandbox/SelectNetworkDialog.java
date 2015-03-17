@@ -60,7 +60,6 @@ public class SelectNetworkDialog extends DialogFragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                 String ssid = networks.get(position);
-                Log.v("listener for adapter:", ssid);
                 dismiss();
 
                 Log.v("selected network #-list", " "+ networkData.get(ssid).networkNum);
@@ -167,7 +166,6 @@ public class SelectNetworkDialog extends DialogFragment {
         networks = new ArrayList<>();
         for(String ssid : networkData.keySet()) {
             networks.add(ssid);
-            Log.v("final network list:", ssid);
         }
         return networks;
     }
