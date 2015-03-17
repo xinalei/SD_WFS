@@ -50,72 +50,90 @@ void parse(char input[], char output[]) {
     // While loop; continue looking at letters until we find "END:".
     while('\0' != x)
     {
-    	// Check to see if we've gotten to the end yet; only if not SSID and 0 commas.
-    	if(0==hitSSID && 0==commaCount)
-    	{
-			// Nested if-else statements to determine if we've gotten to the end yet.
-			if(0==gotE)
-			{
-				if('E'==x)
-				{
-					gotE = 1;
-				}
-			}
-			else // got 'E'
-			{
-				if(0==gotEN)
-				{
-					if('N' == x)
-					{
-						gotEN=1;
-					}
-					else
-					{
-						gotE = 0; // not the end.
-					}
-				}
-				else // got "EN"
-				{
-					if('D' == x)
-					{
-						*ptr_out = '\0';
-						return;
-					}
-					else
-					{
-						gotE = gotEN = 0; // not the end.
-					}
-				}
-			}
-    	}
+//    	// Check to see if we've gotten to the end yet; only if not SSID and 0 commas.
+//    	if(0==hitSSID && 0==commaCount)
+//    	{
+//			// Nested if-else statements to determine if we've gotten to the end yet.
+//			if(0==gotE)
+//			{
+//				if('E'==x)
+//				{
+//					gotE = 1;
+//				}
+//			}
+//			else // got 'E'
+//			{
+//				if(0==gotEN)
+//				{
+//					if('N' == x)
+//					{
+//						gotEN=1;
+//					}
+//					else
+//					{
+//						gotE = 0; // not the end.
+//					}
+//				}
+//				else // got "EN"
+//				{
+//					if('D' == x)
+//					{
+//						*ptr_out = '\0';
+//						return;
+//					}
+//					else
+//					{
+//						gotE = gotEN = 0; // not the end.
+//					}
+//				}
+//			}
+//    	}
 
         // If we get to here we haven't gotten to the end, because there's a break at the end
         // Look at current character; where we at?
-        if('\n' == x)
-        {
-            commaCount = 0;
-            hitSSID = 0;
-            *ptr_out = x; // add newline to output
-            ptr_out++;
-        }
-        else if(',' == x && 8 > commaCount)
-        {
-            commaCount++;
-            if(8 == commaCount)
-            {
-                // Next char starts SSID
-                hitSSID = 1;
-            }
-        }
-        else if(1 == hitSSID)
-        {
-            *ptr_out = x; // add char to output.
-            ptr_out++;
-        }
+    	if('\n' == x)
+		{
+			commaCount = 0;
+			hitSSID = 0;
+			*ptr_out = x; // add newline to output
+			ptr_out++;
+		}
+		else if(1 == hitSSID)
+		{
+			*ptr_out = x; // add char to output.
+			ptr_out++;
+		}
+		else if(',' == x && 8 > commaCount)
+		{
+			if(0 == commaCount || 2 == commaCount)
+			{
+				*ptr_out = x; // add comma to output
+				ptr_out++;
+			}
+			commaCount++;
+			if(8 == commaCount)
+			{
+				// Next char starts SSID
+				hitSSID = 1;
+			}
+		}
+		else if(0 == commaCount)
+		{
+			// Right now we're at the channel
+			*ptr_out = x; // add char to output
+			ptr_out++;
 
-        // Update x
-        ptr++;
-        x=*ptr;
+		}
+		else if(2 == commaCount)
+		{
+			// Now we're at the RSSI value
+			*ptr_out = x; // add char to output
+			ptr_out++;
+		}
+
+    	// Update x
+		ptr++;
+		x=*ptr;
     }
 
     *ptr_out = '\0'; // end the string by adding null

@@ -13,16 +13,21 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Created by Christy on 1/31/2015.
  */
 public class SelectNetworkDialog extends DialogFragment {
 
+    /// Class Variables /////////////////////////////////////////////
+
     ArrayAdapter<String> wifiArrayAdapter;
     ArrayList<String> networks;
     ListView allNetworks;
-    Integer numNetworks;
+    HashMap<String, WFSNetwork> networkData;
+
+    /// Interface ////////////////////////////////////////////////
 
     // Use this instance of the interface to deliver action events
     static NetworkSelectListener mListener;
@@ -33,58 +38,7 @@ public class SelectNetworkDialog extends DialogFragment {
         void wifiNetworkSelected(String ssid, String position);
     }
 
-    public static SelectNetworkDialog newInstance(String s) {
-        SelectNetworkDialog myFragment = new SelectNetworkDialog();
-        ArrayList<String> networks = parseScanData(s);
-
-        if(null == networks || 0 == networks.size()) {
-            Log.v("arraylist of networks was null", "exiting");
-            return null;
-        }
-
-        Bundle args = new Bundle();
-        args.putStringArrayList("networkList", networks);
-        myFragment.setArguments(args);
-        return myFragment;
-    }
-
-    private static ArrayList<String> parseScanData(String s) {
-
-        if(null == s) return null;
-
-        StringBuilder curr = new StringBuilder();
-        int index = 0;
-        // First line is the number of networks found.
-        while(index < s.length() && '\n' != s.charAt(index)) {
-            curr.append(s.charAt(index++));
-        }
-        // index is at the newline for line containing "numnetworks\n"
-        index++;
-
-        int numnetworks = Integer.valueOf(curr.toString().trim());
-        Log.v("numnetworks",String.valueOf(numnetworks));
-        //index++; // move past initial newline.
-
-        ArrayList<String> wifiNetworks = new ArrayList<>();
-        while(index < s.length()) {
-
-            if(0x0D == s.charAt(index)) { // newline
-                wifiNetworks.add( curr.toString() );
-                curr.setLength(0); // reset curr
-            }
-            else if(0x7F == s.charAt(index)) {
-                break;
-            }
-            else { // append to curr.
-                curr.append( s.charAt(index) );
-            }
-
-            index++;
-        }
-
-        if(wifiNetworks.isEmpty()) return null;
-        return  wifiNetworks;
-    }
+    /// Fragment Methods /////////////////////////////////////////////////
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -96,7 +50,7 @@ public class SelectNetworkDialog extends DialogFragment {
 
         networks = getArguments().getStringArrayList("networkList");
 
-        wifiArrayAdapter = new ArrayAdapter<String>(v.getContext(), android.R.layout.simple_list_item_1, networks);
+        wifiArrayAdapter = new ArrayAdapter<>(v.getContext(), android.R.layout.simple_list_item_1, networks);
 
         allNetworks = (ListView) v.findViewById(R.id.listView_wireless_networks);
         allNetworks.setAdapter(wifiArrayAdapter);
@@ -106,10 +60,11 @@ public class SelectNetworkDialog extends DialogFragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                 String ssid = networks.get(position);
-                Log.v("listener for networks adapter, user selected:", ssid);
+                Log.v("listener for adapter:", ssid);
                 dismiss();
 
-                mListener.wifiNetworkSelected(ssid, String.valueOf(position+1));
+                Log.v("selected network #-list", " "+ networkData.get(ssid).networkNum);
+                mListener.wifiNetworkSelected(ssid, networkData.get(ssid).networkNum);
             }
         });
 
@@ -134,6 +89,114 @@ public class SelectNetworkDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         return super.onCreateDialog(savedInstanceState);
+    }
+
+    /// User-Defined Methods /////////////////////////////////////////////////
+
+    public static SelectNetworkDialog newInstance(String s) {
+        SelectNetworkDialog myFragment = new SelectNetworkDialog();
+
+        if(null == s) {
+            return null;
+        }
+
+        Bundle arg = new Bundle();
+        arg.putString("inpData", s);
+        myFragment.setArguments(arg);
+        return myFragment;
+    }
+
+    public ArrayList<String> parseScanData() {
+
+        String data = getArguments().getString("inpData");
+        if(null == data) return null;
+
+        networkData = new HashMap<>();
+
+        // Get number of networks.
+
+        StringBuilder curr = new StringBuilder();
+        int index = 0;
+        // First line is the number of networks found.
+        while(index < data.length() && '\n' != data.charAt(index)) {
+            curr.append(data.charAt(index++));
+        }
+        index++; // index is at the newline for line containing "numnetworks\n"
+
+        int numnetworks = Integer.valueOf(curr.toString().trim()); // will throw if not an int.
+        Log.v("numnetworks",String.valueOf(numnetworks));
+        curr.setLength(0); // Clear curr
+
+        // Retrieve the (numnetworks) networks & create hashmap of WFSNetwork s
+
+        while(index < data.length()) {
+
+            if(0x0D == data.charAt(index) || 0x0A == data.charAt(index)) { // carriage return
+                WFSNetwork potential = new WFSNetwork(curr.toString());
+
+                // Don't add network if there's no visible SSID
+                if(null == potential.SSID || 0 == potential.SSID.trim().length()) {
+                    curr.setLength(0);
+                    index++;
+                    continue;
+                }
+
+                if(networkData.containsKey( potential.SSID) ) {
+                    WFSNetwork preexisting = networkData.get(potential.SSID);
+                    if( Integer.parseInt(preexisting.RSSI) < Integer.parseInt(potential.RSSI) ) { // potential throw here
+                        // Replace preexisting with potential
+                        networkData.put(potential.SSID, potential);
+                    }
+                }
+                else {
+                    networkData.put(potential.SSID, potential);
+                }
+                curr.setLength(0); // reset curr
+            }
+            else if(0x7F == data.charAt(index)) {
+                break;
+            }
+            else { // append to curr.
+                curr.append( data.charAt(index) );
+            }
+
+            index++;
+        }
+
+
+        networks = new ArrayList<>();
+        for(String ssid : networkData.keySet()) {
+            networks.add(ssid);
+            Log.v("final network list:", ssid);
+        }
+        return networks;
+    }
+
+    /// Private subclass //////////////////////////////////////////////
+
+    private class WFSNetwork {
+
+        String networkNum;
+        String RSSI;
+        String SSID;
+
+        public WFSNetwork(String i) {
+
+            String[] data = i.split(",");
+            if(data.length != 3) {
+                // Error case
+                networkNum = null;
+                RSSI = null;
+                SSID = null;
+            }
+            else {
+                networkNum = data[0];
+                RSSI = data[1];
+                SSID = data[2];
+            }
+        }
+
+
     }
 }
 

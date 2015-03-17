@@ -23,6 +23,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+
 
 public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener, PasswordDialog.PasswordListener, VideoSetupFragment.VideoFragmentListener
 {
@@ -280,14 +282,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     }
 
 
-//    // Remove the spinner dialog.
-//    public void doneLoading() {
-//        if( loadFrag != null ) {
-//            loadFrag.dismiss();
-//            loadFrag = null;
-//        }
-//    }
-
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
 
@@ -305,7 +299,13 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
             ft.addToBackStack(null);
 
             // Create and show the dialog.
-            DialogFragment newFragment = SelectNetworkDialog.newInstance(availableWifiNetworks);
+            SelectNetworkDialog newFragment = SelectNetworkDialog.newInstance(availableWifiNetworks);
+            ArrayList<String> list = newFragment.parseScanData(); // parse the data, create a hashmap to remove duplicate networks.
+
+            Bundle arg = new Bundle();
+            arg.putStringArrayList("networkList", list);
+            newFragment.setArguments(arg);
+
             newFragment.show(ft, "dialog_selectnetwork");
         }
         else {
@@ -350,7 +350,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         mConnectingDevices.write("P".getBytes()); // sends data to MSP
 
         // Send "password \n networkPos \n cutoffChar"
-        String pwData = p + "\n" + userSelectedNetworkPos + "\n" + String.valueOf(0x18);
+        String pwData = p + "\n" + userSelectedNetworkPos + "\n";// + String.valueOf(0x18);
         mConnectingDevices.write(pwData.getBytes()); // send password to MSP
         commandFrag.updateLog("sending pw " + p + "and network num " +userSelectedNetworkPos, false);
 
