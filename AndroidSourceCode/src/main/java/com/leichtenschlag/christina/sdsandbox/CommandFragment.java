@@ -103,9 +103,9 @@ public class CommandFragment extends Fragment {
             @Override
             public void onClick(View v) {
 
-                ManualControlFragment manFrag = ManualControlFragment.newInstance();
+                MainActivity.manFrag = ManualControlFragment.newInstance();
                 getActivity().getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.mainactivity_container, manFrag)
+                        .replace(R.id.mainactivity_container, MainActivity.manFrag)
                         .commit();
                 MainActivity.title.setText(Constants.TITLE_MANUAL);
             }
