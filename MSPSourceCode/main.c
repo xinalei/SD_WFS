@@ -1,10 +1,9 @@
-// Going to remove the interrupts (?)
-
 #include <msp430.h>
 #include <string.h>
 #include <stdlib.h>
 #include "buffer_c.h"
 #include "password.h"
+#include "motorWorkingWith4Motor.h"
 
 #define BUFFER_SIZE 2000
 
@@ -15,6 +14,8 @@ char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
 int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
 int bool_scanning=0,bool_password=0,bool_join=0; // boolean 0=false 1=true
+const int rotateSpeed = 150;
+const int rotateLength = 5;
 
 volatile int wiflyCommand = 0; // false
 
@@ -41,6 +42,12 @@ int main(void)
 	UCA1MCTL |= UCBRS_1 + UCBRF_0;   // Modln UCBRSx=0, UCBRFx=0,
 	UCA1CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
 	UCA1IE |= UCRXIE;                         // Enable USCI_A1 RX interrupt
+
+	// Set the pinout for the motor controller.
+	setup();
+
+	P1DIR = 0x01;
+	P1OUT ^= 0x01;
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
@@ -131,6 +138,7 @@ void sendCharsToTerm(char data[])
 	}
 }
 
+// Wifly setup: this needs to be called before the join command to join a network.
 void wiflySetup()
 {
 	sendCharsToWifly("set wlan auth 4\n\r");
@@ -148,7 +156,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 #error Compiler not supported!
 #endif
 {
-  switch(__even_in_range(UCA0IV,4))
+  switch(UCA0IV)
   {
   case 0:break; // no interrupt
   case 2: // RXIFG - received a character!
@@ -168,7 +176,6 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 							  && ('E'==wiflyBuffer[wiflyLastRec-3]) )
 		  {
 			  wiflyCommand=1; // Redirect all chars to Wifly again
-
 			  parseScanData(); // Parse the data & then send parsed data to Bluetooth.
 		  }
 	  }
@@ -195,13 +202,10 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 #error Compiler not supported!
 #endif
 {
-  switch(__even_in_range(UCA1IV,4))
+  switch(UCA1IV)
   {
 	case 0:break; // no interrupt
 	case 2: // RXIFG - received a character!
-
-		//scanning = 0; // Turn off logic that saves A0_RX characters into the buffer
-
 
 		if(1==bool_password) // We're expecxting a password to be returned; put it in buffer
 		{
@@ -260,15 +264,35 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 			// Show net
 			sendCharsToWifly("show net\n\r");
 		}
-		else {
-
-			// If wifly is in command mode and isn't one of the above preset functions,
-			//  send the character to the wifly module.
-			if(1 == wiflyCommand) {
-				while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
-				UCA0TXBUF = UCA1RXBUF; // send character to wifly module
-			}
+		else if('I' == UCA1RXBUF)
+		{
+			// Move forward
+			forward(rotateSpeed, rotateLength);
 		}
+		else if('J' == UCA1RXBUF)
+		{
+			// Turn Left
+			rotateLeft(rotateSpeed, rotateLength);
+		}
+		else if('K' == UCA1RXBUF)
+		{
+			// Reverse
+			reverse(rotateSpeed, rotateLength);
+		}
+		else if('L' == UCA1RXBUF)
+		{
+			// Turn Right
+			rotateRight(rotateSpeed, rotateLength);
+		}
+//		else {
+//
+//			// If wifly is in command mode and isn't one of the above preset functions,
+//			//  send the character to the wifly module.
+//			if(1 == wiflyCommand) {
+//				while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
+//				UCA0TXBUF = UCA1RXBUF; // send character to wifly module
+//			}
+//		}
 
 		break;
 	case 4: break; // TXIFG - sending a character

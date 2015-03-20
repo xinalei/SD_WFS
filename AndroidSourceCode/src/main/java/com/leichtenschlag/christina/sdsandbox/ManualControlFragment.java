@@ -56,28 +56,32 @@ public class ManualControlFragment extends Fragment {
         forward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Send command to move forward two tire rotations
+                // Send command to move forward two tire rotations
+                MainActivity.mConnectingDevices.write("I".getBytes()); // sends data to MSP
             }
         });
 
         left.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Send command to rotate wheels left (?)
-            }
-        });
-
-        right.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // TODO: Send command to rotate wheels right(?)
+                // Send command to rotate wheels left (?)
+                MainActivity.mConnectingDevices.write("J".getBytes()); // sends data to MSP
             }
         });
 
         reverse.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Send command to move in reverse two tire rotations
+                MainActivity.mConnectingDevices.write("K".getBytes()); // sends data to MSP
+                // Send command to move in reverse two tire rotations
+            }
+        });
+
+        right.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Send command to rotate wheels right(?)
+                MainActivity.mConnectingDevices.write("L".getBytes()); // sends data to MSP
             }
         });
 

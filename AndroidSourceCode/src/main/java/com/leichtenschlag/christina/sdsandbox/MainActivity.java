@@ -248,6 +248,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                             .replace(R.id.mainactivity_container, new BluetoothFragment())
                             .commitAllowingStateLoss();
 
+                    // TODO: cancel the timer in the ManualControlFragment.
+
                     // Now put back bluetooth fragment
                     setupBluetoothFragment();
                     btDeviceName = null;
