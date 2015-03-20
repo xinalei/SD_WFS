@@ -89,6 +89,8 @@ public class ManualControlFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 // TODO: Start autonomous functionality
+                MainActivity.autonomousMode = true;
+                MainActivity.mConnectingDevices.write("A".getBytes()); // sends data to MSP
             }
         });
 

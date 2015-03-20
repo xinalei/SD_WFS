@@ -38,12 +38,13 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
             ip = "http://wfs:group30@192.168.1.19/image.jpg",
             currentRSSI=null;
     static TextView connectionStatus, title;
-//    static WebView videoFeed=null;
+    static boolean autonomousMode = false;
+    static StringBuilder rssi;
 
     // Fragments
     static CommandFragment commandFrag;
     static LoadingDialogFragment loadFrag=null;
-
+    static ManualControlFragment manFrag=null;
 
     /// Android Activity Functions /////////////////////////////////////////////////////////////////////////////////////
 
@@ -72,6 +73,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
         // Register receiver
         registerReceiver(ActionFoundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+
+        rssi = new StringBuilder();
     }
 
     @Override
@@ -177,7 +180,14 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     byte[] readBuf = (byte[]) msg.obj;
                     String readMessage = new String(readBuf, 0, msg.arg1);
 
-                    if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
+                    if(autonomousMode) { // Want to update the RSSI.
+                        rssi.append(readMessage);
+                        String ret = determineIfRSSI();
+                        if(null != ret) {
+                            manFrag.updateSignalStrength(ret);
+                        }
+                    }
+                    else if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
 
                         commandFrag.updateScanLog(readMessage); // First add message to commandFrag variable
                         // Have we collected data for all the networks?
@@ -198,6 +208,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                             if(rssi.contains("-")) {
                                 Log.v("received rssi!", "value = " +rssi);
                                 currentRSSI = rssi;
+                                commandFrag.updateLog(rssi, true);
                             }
                         }
                     }
@@ -301,14 +312,14 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         title.setText(Constants.TITLE_WIFI);
     }
 
-    public void addManualControlFragment() {
-
-        ManualControlFragment manFrag = ManualControlFragment.newInstance();
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.mainactivity_container, manFrag)
-                .commit();
-        title.setText(Constants.TITLE_MANUAL);
-    }
+//    public void addManualControlFragment() {
+//
+//        manFrag = ManualControlFragment.newInstance();
+//        getSupportFragmentManager().beginTransaction()
+//                .replace(R.id.mainactivity_container, manFrag)
+//                .commit();
+//        title.setText(Constants.TITLE_MANUAL);
+//    }
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
@@ -389,6 +400,31 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     public void camSetupComplete(String ipaddr) {
         this.ip = ipaddr;
         addCommandFragment();
+    }
+
+    public String determineIfRSSI() {
+        String ret = null;
+        String rssidata = rssi.toString();
+        if(null != rssidata) {
+            // can extract the data.
+
+            Integer start=null, end=null;
+            for(int i=0; i<rssidata.length(); i++) {
+                if(null==start && '*' == rssidata.charAt(i)) {
+                    start = i+1;
+                }
+                else if(null!=start && '*' == rssidata.charAt(i)) {
+                    end = i;
+                    break;
+                }
+            }
+
+            if(null != start && null != end) {
+                rssi.setLength(0);
+                ret = rssidata.substring(start, end).trim();
+            }
+        }
+        return ret;
     }
 
 }

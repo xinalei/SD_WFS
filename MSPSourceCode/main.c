@@ -1,8 +1,7 @@
 #include <msp430.h>
 #include <string.h>
 #include <stdlib.h>
-#include "buffer_c.h"
-#include "password.h"
+#include "parsing.h"
 #include "motorWorkingWith4Motor.h"
 
 #define BUFFER_SIZE 2000
@@ -13,11 +12,9 @@ void sendCharsToTerm(char data[]);
 char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
 int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
-int bool_scanning=0,bool_password=0,bool_join=0; // boolean 0=false 1=true
+int bool_scanning=0,bool_password=0,bool_rssi=0,bool_autonomous=0; // boolean 0=false 1=true
 const int rotateSpeed = 150;
 const int rotateLength = 5;
-
-volatile int wiflyCommand = 0; // false
 
 int main(void)
 {
@@ -46,8 +43,7 @@ int main(void)
 	// Set the pinout for the motor controller.
 	setup();
 
-	P1DIR = 0x01;
-	P1OUT ^= 0x01;
+	P1DIR |= 0x01;
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
@@ -67,8 +63,8 @@ void resetBuffers()
 
 void parseScanData()
 {
-	// Pass the input to buffer_c.parse
-	parse(wiflyBuffer,parsed);
+	// Pass the input to parsing.scan_parse
+	scan_parse(wiflyBuffer,parsed);
 
 	// Now that we've got the parsed data, lets send it.
 	char *ptr = parsed;
@@ -117,6 +113,33 @@ void parseConnectionData()
 
 }
 
+void parseRSSIData()
+{
+	// Pass the input to parsing.rssi_parse
+	rssi_parse(wiflyBuffer,parsed);
+
+	// Pad data with '*'
+	while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
+	UCA1TXBUF = '*'; // Send char
+
+	// Now we have the rssi value. Send it back to the app.
+	char *ptr = parsed;
+	while('\0' != *ptr)
+	{
+		while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
+		UCA1TXBUF = *ptr; // Send char
+		ptr++;
+	}
+
+	// Pad data with '*'
+	while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
+	UCA1TXBUF = '*'; // Send char
+
+	// Reset variables
+	bool_rssi = 0;
+	resetBuffers();
+}
+
 void sendCharsToWifly(char data[])
 {
 	int j;
@@ -163,7 +186,6 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 
 	  if(1==bool_scanning) // We're expecting scan data to be returned; put it in the buffer.
 	  {
-		  wiflyCommand=0;
 		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
 		  if(wiflyLastRec > BUFFER_SIZE-1)
 		  {
@@ -171,12 +193,27 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 		  }
 
 		  /// Checking if END has been received.
-		  if(wiflyLastRec > 2 && ('D'==wiflyBuffer[wiflyLastRec-1])
+		  if(wiflyLastRec > 2 && ('E'==wiflyBuffer[wiflyLastRec-3])
 							  && ('N'==wiflyBuffer[wiflyLastRec-2])
-							  && ('E'==wiflyBuffer[wiflyLastRec-3]) )
+							  && ('D'==wiflyBuffer[wiflyLastRec-1]) )
 		  {
-			  wiflyCommand=1; // Redirect all chars to Wifly again
 			  parseScanData(); // Parse the data & then send parsed data to Bluetooth.
+		  }
+	  }
+	  else if(1==bool_rssi)
+	  {
+		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
+		  if(wiflyLastRec > BUFFER_SIZE-1)
+		  {
+			  wiflyLastRec = 0;
+		  }
+
+		  /// Checking if dBm has been received.
+		  if(wiflyLastRec > 2 && ('d'==wiflyBuffer[wiflyLastRec-3])
+							  && ('B'==wiflyBuffer[wiflyLastRec-2])
+							  && ('m'==wiflyBuffer[wiflyLastRec-1]) )
+		  {
+			  parseRSSIData(); // Extract the RSSI value
 		  }
 	  }
 	  else // Send the char received from Wifly to Bluetooth
@@ -207,7 +244,11 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 	case 0:break; // no interrupt
 	case 2: // RXIFG - received a character!
 
-		if(1==bool_password) // We're expecxting a password to be returned; put it in buffer
+		if(1==bool_autonomous)
+		{
+			; // Do nothing (for now). No interrupting the functionality!
+		}
+		else if(1==bool_password) // We're expecxting a password to be returned; put it in buffer
 		{
 			if('\n'==UCA1RXBUF) passwordCount++;
 			wiflyBuffer[wiflyLastRec++] = UCA1RXBUF; // put char into buffer.
@@ -228,12 +269,10 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		}
 		else if('W' == UCA1RXBUF) {
 			// we want to directly send commands to the wifly module from now on.
-			wiflyCommand = 1;
 			sendCharsToWifly("$$$"); // Snd "$$$" to wifly
 		}
 		else if('E' == UCA1RXBUF) {
 			// stop sending commands to the wifly module.
-			wiflyCommand = 0;
 			sendCharsToWifly("exit\n\r"); // Send "exit\n\r" to wifly
 		}
 		else if('S' == UCA1RXBUF) {
@@ -284,15 +323,18 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 			// Turn Right
 			rotateRight(rotateSpeed, rotateLength);
 		}
-//		else {
-//
-//			// If wifly is in command mode and isn't one of the above preset functions,
-//			//  send the character to the wifly module.
-//			if(1 == wiflyCommand) {
-//				while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
-//				UCA0TXBUF = UCA1RXBUF; // send character to wifly module
-//			}
-//		}
+		else if('A' == UCA1RXBUF)
+		{
+			// Begin autonomous functionality.
+			//bool_autonomous=1;
+
+			P1OUT ^= 0x01;
+
+			// 1. Get RSSI.
+			bool_rssi=1;
+			sendCharsToWifly("show rssi\n\r");
+			// GOTO A0RX under if(1==bool_rssi) for next step.
+		}
 
 		break;
 	case 4: break; // TXIFG - sending a character
