@@ -6,7 +6,7 @@
 // Function declarations
 void scan_parse(char input[], char output[]);
 void getCount(char [], char**);
-char pw_parse(char input[], char pw[]);
+char* pw_parse(char input[], char pw[]);
 void rssi_parse(char input[], char rssi[]);
 
 #include <stdio.h>
@@ -159,7 +159,7 @@ void getCount(char string[], char** out)
 
 }
 
-char pw_parse(char input[], char pw[])
+char* pw_parse(char input[], char pw[])
 {
 	int inpLength, newlineCount=0;
 	inpLength = (int)strlen(input);
@@ -169,7 +169,7 @@ char pw_parse(char input[], char pw[])
 	char x = *input;
 	char *ptr = input;
 	char *ptr_pw = pw;
-	char position  = '\0'; // this will get returned.
+	char* position  = '\0'; // this will get returned.
 
 	while('\0' != x)
 	{
@@ -191,7 +191,8 @@ char pw_parse(char input[], char pw[])
 			}
 			else if(1==newlineCount)
 			{
-				position = x;
+				position = ptr;
+				break;
 			}
 		}
         // Update x

@@ -5,16 +5,30 @@
 #include "motorWorkingWith4Motor.h"
 
 #define BUFFER_SIZE 2000
+#define RSSI_SIZE 5
 
 void sendCharsToWifly(char data[]);
 void sendCharsToTerm(char data[]);
+void fwd();
+void rev();
+void left();
+void right();
 
 char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
+char rssiRet[RSSI_SIZE];
 int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
 int bool_scanning=0,bool_password=0,bool_rssi=0,bool_autonomous=0; // boolean 0=false 1=true
-const int rotateSpeed = 150;
-const int rotateLength = 5;
+const int rotateSpeedFB = 100;
+const int rotateSpeedLR = 255;
+const int rotateLengthFB = 3;
+const int rotateLengthLR = 3;
+
+int prevRSSI=100;
+int currRSSI=100;
+int fwdCount=-1;
+const int threshold = -20;
+
 
 int main(void)
 {
@@ -43,7 +57,8 @@ int main(void)
 	// Set the pinout for the motor controller.
 	setup();
 
-	P1DIR |= 0x01;
+	P4DIR |= 0x80;
+	P4OUT = 0x80;
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
@@ -83,7 +98,7 @@ void parseScanData()
 void parseConnectionData()
 {
 	// Pass the input to password.pw_parse
-	char pos = ')';
+	char* pos = '\0';
 	pos = pw_parse(wiflyBuffer,parsed);
 
 	// First issue the password command.
@@ -101,8 +116,13 @@ void parseConnectionData()
 
 	// Now issue the join command
 	sendCharsToWifly("join # ");
-	while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
-	UCA0TXBUF = pos;
+
+	while('\0' != *pos && '\n' != *pos && '\r' != *pos)
+	{
+		while (!(UCA0IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
+		UCA0TXBUF = *pos;
+		pos++;
+	}
 	sendCharsToWifly("\n\r");
 
 	bool_password=0;
@@ -124,10 +144,12 @@ void parseRSSIData()
 
 	// Now we have the rssi value. Send it back to the app.
 	char *ptr = parsed;
+	int rssiIndex = 0;
 	while('\0' != *ptr)
 	{
 		while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
 		UCA1TXBUF = *ptr; // Send char
+		if(rssiIndex < RSSI_SIZE) rssiRet[rssiIndex++] = *ptr; // add rssi value to specific RSSI array
 		ptr++;
 	}
 
@@ -135,8 +157,15 @@ void parseRSSIData()
 	while (!(UCA1IFG&UCTXIFG)); // USCI_A1 TX buffer ready?
 	UCA1TXBUF = '*'; // Send char
 
+
+	// Fill rest of rssiIndex with null
+	while(rssiIndex<RSSI_SIZE)
+	{
+		rssiRet[rssiIndex++] = '\0';
+	}
+
 	// Reset variables
-	bool_rssi = 0;
+	if(1 != bool_autonomous) bool_rssi = 0;
 	resetBuffers();
 }
 
@@ -167,6 +196,29 @@ void wiflySetup()
 	sendCharsToWifly("set wlan auth 4\n\r");
 	sendCharsToWifly("set ip dhcp 1\n\r");
 	sendCharsToWifly("set wlan join 0\n\r");
+}
+
+
+int rssiCharArrayToInt()
+{
+	int indexLSD = RSSI_SIZE -1;
+	while(-1 < indexLSD && '\0' == rssiRet[indexLSD])
+	{
+		indexLSD--;
+	}
+
+	int num = 0;
+	int multiplier = 1;
+	while('-' != rssiRet[indexLSD])
+	{
+		int digit = (rssiRet[indexLSD] - 0x30);
+		num += (multiplier * digit);
+		multiplier *=10;
+		indexLSD--;
+	}
+	num *= -1; // make negative
+
+	return num;
 }
 
 // USCI_A0 interrupt -- wifly module
@@ -214,6 +266,62 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 							  && ('m'==wiflyBuffer[wiflyLastRec-1]) )
 		  {
 			  parseRSSIData(); // Extract the RSSI value
+
+			  // now rssiRet[] contains the rssi data.
+			  if(100!=prevRSSI)
+			  {
+
+				  volatile unsigned int jj = 0;
+				  int kk;
+				  for(kk=0; kk<30; kk++)
+				  {
+					  P4OUT ^= 0x80;
+					  for(jj=0; jj<10000;jj++);
+				  }
+
+				  currRSSI = rssiCharArrayToInt();
+
+				  if(currRSSI < threshold) // Negative numbers; continue as long as currRSSI isn't strong enough.
+				  {
+					  if(currRSSI > prevRSSI)
+					  {
+						  prevRSSI = currRSSI;
+						  fwdCount=1;
+					  }
+					  else if(currRSSI == prevRSSI)
+					  {
+						  fwdCount++;
+					  }
+					  else
+					  {
+						  int half = fwdCount/2;
+						  int y=0;
+						  for(y=0; y<half; y++)
+						  {
+							  rev();
+						  }
+						  left();
+					  }
+
+
+					  fwd();
+					  sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
+
+				  }
+				  else // Stopping case!
+				  {
+					  bool_autonomous = 0;
+					  bool_rssi=0;
+				  }
+			  }
+			  else // Then we haven't set it yet. ***NEED TO RESET TO 100 AFTER ALGORITHM ENDS***
+			  {
+				  prevRSSI = rssiCharArrayToInt();
+				  fwd();
+				  fwdCount=1;
+				  sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
+			  }
+
 		  }
 	  }
 	  else // Send the char received from Wifly to Bluetooth
@@ -306,27 +414,27 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		else if('I' == UCA1RXBUF)
 		{
 			// Move forward
-			forward(rotateSpeed, rotateLength);
+			fwd();
 		}
 		else if('J' == UCA1RXBUF)
 		{
 			// Turn Left
-			rotateLeft(rotateSpeed, rotateLength);
+			left();
 		}
 		else if('K' == UCA1RXBUF)
 		{
 			// Reverse
-			reverse(rotateSpeed, rotateLength);
+			rev();
 		}
 		else if('L' == UCA1RXBUF)
 		{
 			// Turn Right
-			rotateRight(rotateSpeed, rotateLength);
+			right();
 		}
 		else if('A' == UCA1RXBUF)
 		{
 			// Begin autonomous functionality.
-			//bool_autonomous=1;
+			bool_autonomous=1;
 
 			P1OUT ^= 0x01;
 
@@ -342,3 +450,22 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
   }
 }
 
+void fwd()
+{
+	forward(rotateSpeedFB, rotateLengthFB);
+}
+
+void rev()
+{
+	reverse(rotateSpeedFB, rotateLengthFB);
+}
+
+void left()
+{
+	rotateLeft(rotateSpeedLR, rotateLengthLR);
+}
+
+void right()
+{
+	rotateRight(rotateSpeedLR, rotateLengthLR);
+}
