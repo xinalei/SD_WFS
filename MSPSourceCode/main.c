@@ -7,6 +7,7 @@
 #define BUFFER_SIZE 2000
 #define RSSI_SIZE 5
 
+// Function headers
 void sendCharsToWifly(char data[]);
 void sendCharsToTerm(char data[]);
 void fwd();
@@ -14,20 +15,24 @@ void rev();
 void left();
 void right();
 
+// Char array storage
 char wiflyBuffer[BUFFER_SIZE];
 char parsed[BUFFER_SIZE];
 char rssiRet[RSSI_SIZE];
 int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
+// Booleans
 int bool_scanning=0,bool_password=0,bool_rssi=0,bool_autonomous=0; // boolean 0=false 1=true
+// Constants
 const int rotateSpeedFB = 100;
 const int rotateSpeedLR = 255;
 const int rotateLengthFB = 3;
 const int rotateLengthLR = 3;
-
+const int threshold = -30;
+// Autonomous algorithm variables
 int prevRSSI=100;
 int currRSSI=100;
+int rssiDiff = 5;
 int fwdCount=-1;
-const int threshold = -20;
 
 
 int main(void)
@@ -57,13 +62,24 @@ int main(void)
 	// Set the pinout for the motor controller.
 	setup();
 
-	P4DIR |= 0x80;
-	P4OUT = 0x80;
+	P1DIR |= 0x01; // set blue led as output 1.0
+	P4DIR |= 0x80; // set green led as output 4.7
+	P4OUT |= 0x80; // turn on green led
+	P1OUT &= ~0x01; // turn off blue led
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
 }
 
+void toggleBlue()
+{
+	P1OUT ^= 0x01;
+}
+
+void toggleGreen()
+{
+	P4OUT ^= 0x80;
+}
 
 void resetBuffers()
 {
@@ -129,7 +145,7 @@ void parseConnectionData()
 	resetBuffers();
 
 	while (!(UCA1IFG&UCTXIFG)); // USCI_A0 TX buffer ready?
-	UCA1TXBUF = pos;
+	UCA1TXBUF = *pos;
 
 }
 
@@ -266,16 +282,15 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 							  && ('m'==wiflyBuffer[wiflyLastRec-1]) )
 		  {
 			  parseRSSIData(); // Extract the RSSI value
-
+			  toggleBlue();
 			  // now rssiRet[] contains the rssi data.
 			  if(100!=prevRSSI)
 			  {
-
 				  volatile unsigned int jj = 0;
 				  int kk;
-				  for(kk=0; kk<30; kk++)
+				  for(kk=0; kk<5; kk++)
 				  {
-					  P4OUT ^= 0x80;
+					  toggleBlue();
 					  for(jj=0; jj<10000;jj++);
 				  }
 
@@ -288,7 +303,8 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 						  prevRSSI = currRSSI;
 						  fwdCount=1;
 					  }
-					  else if(currRSSI == prevRSSI)
+//					  else if(currRSSI == prevRSSI)
+					  else if((prevRSSI-rssiDiff) <= currRSSI && prevRSSI >= currRSSI)
 					  {
 						  fwdCount++;
 					  }
@@ -312,6 +328,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 				  {
 					  bool_autonomous = 0;
 					  bool_rssi=0;
+					  P1OUT = 0x00;
 				  }
 			  }
 			  else // Then we haven't set it yet. ***NEED TO RESET TO 100 AFTER ALGORITHM ENDS***
