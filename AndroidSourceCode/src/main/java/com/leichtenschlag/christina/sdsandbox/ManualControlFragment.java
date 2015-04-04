@@ -126,7 +126,7 @@ public class ManualControlFragment extends Fragment {
     public void updateSignalStrength(String rssi) {
 
         Log.v("rssi update", "updating signal strength: " + rssi);
-        this.signalStrength.setText( rssi );
+        this.signalStrength.setText( rssi + " dBm");
     }
 
 }

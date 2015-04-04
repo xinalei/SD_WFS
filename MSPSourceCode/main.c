@@ -335,6 +335,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 					  
 					  /// So we want to signal to the application that we're done seeking. Lets use the carrot. 
 					  /// ^fin^
+					  sendCharsToTerm("^fin^");
 				  }
 			  }
 			  else // Then we haven't set it yet. ***NEED TO RESET TO 100 AFTER ALGORITHM ENDS***
@@ -349,8 +350,20 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 	  }
 	  else if(1==bool_manualRSSI)
 	  {
-	      parseRSSIData(); // Extract the RSSI value; also sends RSSI back to the app '*'-delimited
-		  bool_manualRSSI=0;
+		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
+		  if(wiflyLastRec > BUFFER_SIZE-1)
+		  {
+			  wiflyLastRec = 0;
+		  }
+
+		  /// Checking if dBm has been received.
+		  if(wiflyLastRec > 2 && ('d'==wiflyBuffer[wiflyLastRec-3])
+							  && ('B'==wiflyBuffer[wiflyLastRec-2])
+							  && ('m'==wiflyBuffer[wiflyLastRec-1]) )
+		  {
+			  parseRSSIData(); // Extract the RSSI value; also sends RSSI back to the app '*'-delimited
+			  bool_manualRSSI=0;
+		  }
 	  }
 	  else // Send the char received from Wifly to Bluetooth
 	  {
@@ -430,6 +443,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		else if('G' == UCA1RXBUF)
 		{
 			// Show rssi!!
+			bool_manualRSSI=1;
 			sendCharsToWifly("show rssi\n\r");
 		}
 		else if('N' == UCA1RXBUF)
@@ -491,16 +505,6 @@ void fwd()
 	}
 	else
 	{
-//		toggleBlue();
-//		volatile int c = 0;
-//		for(c=0; c<10000; c++);
-//		toggleBlue();
-//		for(c=0; c<10000; c++);
-//		toggleBlue();
-//		for(c=0; c<10000; c++);
-//		toggleBlue();
-//		for(c=0; c<10000; c++);
-//		toggleBlue();
 
 		// Need to make sure that the object wasn't temporary
 //			wait(2);

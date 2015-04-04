@@ -131,6 +131,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
             if(null != btDeviceName) {
                 // User clicked on Disconnect from Bluetooth Device.
                 mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
+                mConnectingDevices.write("E".getBytes()); // Tell wifly module to exit.
                 mConnectingDevices.disconnect(); // Stop thread for BT comm.
                 btDeviceName = null;
                 title.setText(Constants.TITLE_BLUETOOTH);
@@ -192,15 +193,17 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                         // First check if it's ^fin^
                         if(determineIfCompletedAlgorithm()) {
                             // We're done here!
-                            Toast.makeText(context, "Autonomous algorithm has completed!!!!!!", Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "Autonomous algorithm has completed!!!", Toast.LENGTH_LONG).show();
+                            Log.v("autonomous alg", "FINNNNNN!!!!!");
                         }
 						else {
 							// Not done with the algorithm, so it must be RSSI data.
 							String ret = determineIfRSSI();
-							if(null != ret) {
+							if(null != ret && 0 != ret.length()) {
 								manFrag.updateSignalStrength(ret);
 								Log.v("ret=", ret);
 							}
+                            else Log.v("update rssi", "bad value!");
 						}
                     }
                     else if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
@@ -329,14 +332,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         title.setText(Constants.TITLE_WIFI);
     }
 
-//    public void addManualControlFragment() {
-//
-//        manFrag = ManualControlFragment.newInstance();
-//        getSupportFragmentManager().beginTransaction()
-//                .replace(R.id.mainactivity_container, manFrag)
-//                .commit();
-//        title.setText(Constants.TITLE_MANUAL);
-//    }
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
@@ -448,9 +443,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         String data = rssi.toString();
         if(null != data && data.contains("^"))
         {
-            String[] fin = data.split("^");
-            if(null != fin && 3 == fin.length) {
-                Log.v("should say fin ->", (null!=fin[1])?fin[1]:"null");
+            if(null != data && data.contains("^fin^")) {
                 return true;
             }
         }
