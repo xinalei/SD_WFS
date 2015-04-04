@@ -38,8 +38,10 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
             ip = "http://wfs:group30@192.168.1.19/image.jpg",
             currentRSSI=null;
     static TextView connectionStatus, title;
-    static boolean autonomousMode = false;
     static StringBuilder rssi;
+
+    enum Mode { AUTONOMOUS, MANUAL, SETUP };
+    static Mode appMode = null;
 
     // Fragments
     static CommandFragment commandFrag;
@@ -75,6 +77,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         registerReceiver(ActionFoundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
 
         rssi = new StringBuilder();
+        appMode = Mode.SETUP;
     }
 
     @Override
@@ -180,12 +183,25 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     byte[] readBuf = (byte[]) msg.obj;
                     String readMessage = new String(readBuf, 0, msg.arg1);
 
-                    if(autonomousMode) { // Want to update the RSSI.
+                    Log.v("rec msg", "mode="+((Mode.MANUAL==appMode)?"manual":"not manual"));
+
+                    if(Mode.AUTONOMOUS == appMode || Mode.MANUAL == appMode) { // Want to update the RSSI.
                         rssi.append(readMessage);
-                        String ret = determineIfRSSI();
-                        if(null != ret) {
-                            manFrag.updateSignalStrength(ret);
+                        Log.v("auto mode rssi data", rssi.toString());
+
+                        // First check if it's ^fin^
+                        if(determineIfCompletedAlgorithm()) {
+                            // We're done here!
+                            Toast.makeText(context, "Autonomous algorithm has completed!!!!!!", Toast.LENGTH_LONG).show();
                         }
+						else {
+							// Not done with the algorithm, so it must be RSSI data.
+							String ret = determineIfRSSI();
+							if(null != ret) {
+								manFrag.updateSignalStrength(ret);
+								Log.v("ret=", ret);
+							}
+						}
                     }
                     else if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
 
@@ -242,6 +258,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
                     title.setText(Constants.TITLE_BLUETOOTH); // Set title to indicate lost connection
 
+                    // What if manual control
+
                     // Kill SelectNetworkDialog if it exists.
                     Fragment f = getSupportFragmentManager().findFragmentByTag("dialog_selectnetwork");
                     if(null != f) {
@@ -259,11 +277,10 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                             .replace(R.id.mainactivity_container, new BluetoothFragment())
                             .commitAllowingStateLoss();
 
-                    // TODO: cancel the timer in the ManualControlFragment.
-
                     // Now put back bluetooth fragment
                     setupBluetoothFragment();
                     btDeviceName = null;
+                    appMode = Mode.SETUP;
 
                     if(null != context) {
                         Toast.makeText(context, "Lost Bluetooth connection. Please reconnect to a device.", Toast.LENGTH_LONG).show();
@@ -425,6 +442,19 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
             }
         }
         return ret;
+    }
+
+    public boolean determineIfCompletedAlgorithm() {
+        String data = rssi.toString();
+        if(null != data && data.contains("^"))
+        {
+            String[] fin = data.split("^");
+            if(null != fin && 3 == fin.length) {
+                Log.v("should say fin ->", (null!=fin[1])?fin[1]:"null");
+                return true;
+            }
+        }
+        return false;
     }
 
 }
