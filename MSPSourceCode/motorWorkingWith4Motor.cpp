@@ -56,7 +56,7 @@ void rotateRight(int speedOfRotate, int length){
   digitalWrite(motor2Pin4, LOW);    // set the Pin motorPin LOW
 }
 
-void forward(int speedOfRotate, int length){
+void reverse(int speedOfRotate, int length){
   analogWrite(motor1Pin1, speedOfRotate); //rotates motor
   analogWrite(motor2Pin3, speedOfRotate); //rotates motor
   digitalWrite(motor1Pin2, LOW);    // set the Pin motorPin LOW
@@ -67,7 +67,7 @@ void forward(int speedOfRotate, int length){
   analogWrite(motor2Pin3, 0);   // set the Pin motorPin LOW
 }
 
-void reverse(int speedOfRotate, int length){
+void forward(int speedOfRotate, int length){
   analogWrite(motor1Pin2, speedOfRotate); //rotates motor
   analogWrite(motor2Pin4, speedOfRotate); //rotates motor
   digitalWrite(motor1Pin1, LOW);    // set the Pin motorPin LOW
@@ -76,48 +76,6 @@ void reverse(int speedOfRotate, int length){
     wait(length);
   digitalWrite(motor1Pin2, LOW);    // set the Pin motorPin LOW
   digitalWrite(motor2Pin4, LOW);    // set the Pin motorPin LOW
-}
-
-
-//Full Speed
-void rotateForwardFull(int length){
-  digitalWrite(motor1Pin1, HIGH); //rotates motor
-  digitalWrite(motor2Pin3, HIGH);
-  digitalWrite(motor1Pin2, LOW);    // set the Pin motorPin2 LOW
-  digitalWrite(motor2Pin4, LOW);
-  delay(length); //waits
-  digitalWrite(motor1Pin1, LOW);    // set the Pin motorPin1 LOW
-  digitalWrite(motor2Pin3, LOW);
-}
-
-void rotateReverseFull(int length){
-  digitalWrite(motor1Pin2, HIGH); //rotates motor
-  digitalWrite(motor2Pin4, HIGH);
-  digitalWrite(motor1Pin1, LOW);    // set the Pin motorPin1 LOW
-  digitalWrite(motor2Pin3, LOW);
-  delay(length); //waits
-  digitalWrite(motor1Pin2, LOW);    // set the Pin motorPin2 LOW
-  digitalWrite(motor2Pin4, LOW);
-}
-
-void rotateLeftFull(int length){
-  digitalWrite(motor1Pin2, HIGH); //rotates motor
-  digitalWrite(motor2Pin3, HIGH);
-  digitalWrite(motor1Pin1, LOW);    // set the Pin motorPin1 LOW
-  digitalWrite(motor2Pin4, LOW);
-  delay(length); //waits
-  digitalWrite(motor1Pin2, LOW);    // set the Pin motorPin2 LOW
-  digitalWrite(motor2Pin3, LOW);
-}
-
-void rotateRightFull(int length){
-  digitalWrite(motor1Pin1, HIGH); //rotates motor
-  digitalWrite(motor2Pin4, HIGH);
-  digitalWrite(motor1Pin1, LOW);    // set the Pin motorPin1 LOW
-  digitalWrite(motor2Pin3, LOW);
-  delay(length); //waits
-  digitalWrite(motor1Pin1, LOW);    // set the Pin motorPin2 LOW
-  digitalWrite(motor2Pin4, LOW);
 }
 
 

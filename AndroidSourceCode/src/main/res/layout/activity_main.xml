@@ -7,18 +7,17 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Main Activity !"
         android:id="@+id/textView_maintitle"
         android:layout_gravity="center_horizontal"
-        android:textSize="@dimen/abc_text_size_large_material"/>
+        android:text="Main Activity !"
+        android:textSize="@dimen/abc_text_size_small_material" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="No Connection"
         android:id="@+id/textView_connectionstatus"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:text="No Connection"
+        android:textSize="@dimen/abc_text_size_small_material" />
 
 </LinearLayout>

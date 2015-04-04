@@ -104,10 +104,12 @@ public class CommandFragment extends Fragment {
             public void onClick(View v) {
 
                 MainActivity.manFrag = ManualControlFragment.newInstance();
+                MainActivity.appMode = MainActivity.Mode.MANUAL;
                 getActivity().getSupportFragmentManager().beginTransaction()
                         .replace(R.id.mainactivity_container, MainActivity.manFrag)
                         .commit();
                 MainActivity.title.setText(Constants.TITLE_MANUAL);
+                MainActivity.mConnectingDevices.write("G".getBytes()); // want current RSSI value on the screen.
             }
         });
 

@@ -9,16 +9,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/rssiText"
-        android:gravity="center"
-        android:textSize="@dimen/abc_text_size_large_material" />
+        android:textSize="@dimen/abc_text_size_small_material"
+        android:gravity="center" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/textView_signalstrength"
         android:text="@string/rssiVal"
+        android:textSize="@dimen/abc_text_size_small_material"
         android:gravity="center"
-        android:textSize="@dimen/abc_text_size_large_material"
         android:layout_marginBottom="6dp" />
 
 
@@ -27,7 +27,8 @@
         android:layout_height="wrap_content"
         android:id="@+id/button_startAuto"
         android:layout_gravity="center"
-        android:text="@string/autoalg_but"/>
+        android:text="@string/autoalg_but"
+        android:textSize="@dimen/abc_text_size_small_material"/>
 
 
     <WebView
@@ -53,7 +54,8 @@
             android:layout_height="wrap_content"
             android:id="@+id/button_n"
             android:layout_centerInParent="true"
-            android:text="FORWARD"/>
+            android:text="FORWARD"
+            android:textSize="@dimen/abc_text_size_small_material"/>
 
     </RelativeLayout>
 
@@ -69,14 +71,16 @@
             android:layout_height="wrap_content"
             android:id="@+id/button_w"
             android:layout_alignParentLeft="true"
-            android:text="LEFT" />
+            android:text="LEFT"
+            android:textSize="@dimen/abc_text_size_small_material" />
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/button_e"
             android:layout_alignParentRight="true"
-            android:text="RIGHT"/>
+            android:text="RIGHT"
+            android:textSize="@dimen/abc_text_size_small_material"/>
     </RelativeLayout>
 
     <RelativeLayout
@@ -91,7 +95,8 @@
             android:layout_height="wrap_content"
             android:id="@+id/button_s"
             android:layout_centerInParent="true"
-            android:text="REVERSE" />
+            android:text="REVERSE"
+            android:textSize="@dimen/abc_text_size_small_material" />
 
     </RelativeLayout>
 

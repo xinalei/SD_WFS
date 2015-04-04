@@ -2,6 +2,7 @@ package com.leichtenschlag.christina.sdsandbox;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -89,7 +90,7 @@ public class ManualControlFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 // TODO: Start autonomous functionality
-                MainActivity.autonomousMode = true;
+                MainActivity.appMode = MainActivity.Mode.AUTONOMOUS;
                 MainActivity.mConnectingDevices.write("A".getBytes()); // sends data to MSP
             }
         });
@@ -101,13 +102,19 @@ public class ManualControlFragment extends Fragment {
         feedTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Update the video feed.
-                        feed.loadUrl(MainActivity.ip);
-                    }
-                });
+                try{
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Update the video feed.
+                            feed.loadUrl(MainActivity.ip);
+                        }
+                    });
+                }
+                catch(Exception e) {
+                    Log.v("timer task throw", "not today! " + e.toString());
+                    this.cancel();
+                }
             }
         }, 0, 600);//refresh rate time interval (ms)
         // Can't go much faster, else nothing actually loads.
@@ -118,6 +125,7 @@ public class ManualControlFragment extends Fragment {
 
     public void updateSignalStrength(String rssi) {
 
+        Log.v("rssi update", "updating signal strength: " + rssi);
         this.signalStrength.setText( rssi );
     }
 

@@ -10,12 +10,12 @@
     >
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/wiflyInst"
+        android:textSize="@dimen/abc_text_size_small_material"
         android:id="@+id/textView_wiflyinst"
         android:editable="false"
-        android:textSize="14sp"
         android:gravity="center"
         android:padding="5dp"/>
 
@@ -30,42 +30,49 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="Turn On Command Mode"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wifly$$$"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="command setup"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflysetup"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="Scan For Wireless Networks"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflyscan"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="Reboot Wifly Module"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflyreboot"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="RSSI"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflyRSSI"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="show net"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflyshownet"/>
 
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="Complete Wireless Setup"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_exitwifisetup"/>
 
 
@@ -82,7 +89,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/textView_commandlog"
             android:layout_marginTop="10dp"/>
 

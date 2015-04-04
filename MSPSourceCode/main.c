@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "parsing.h"
 #include "motorWorkingWith4Motor.h"
+#include "sensors.h"
 
 #define BUFFER_SIZE 2000
 #define RSSI_SIZE 5
@@ -21,19 +22,19 @@ char parsed[BUFFER_SIZE];
 char rssiRet[RSSI_SIZE];
 int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
 // Booleans
-int bool_scanning=0,bool_password=0,bool_rssi=0,bool_autonomous=0; // boolean 0=false 1=true
+int bool_scanning=0,bool_password=0,bool_autonomous=0,bool_manualRSSI=0; // boolean 0=false 1=true
 // Constants
-const int rotateSpeedFB = 100;
-const int rotateSpeedLR = 255;
+const int rotateSpeedFB = 150;
+const int rotateSpeedLR = 155;
 const int rotateLengthFB = 3;
-const int rotateLengthLR = 3;
-const int threshold = -30;
+const int rotateLengthLR = 5;
+const int threshold = -39;
 // Autonomous algorithm variables
 int prevRSSI=100;
 int currRSSI=100;
 int rssiDiff = 5;
-int fwdCount=-1;
-
+int fwdCount=1;
+int sensingDist=35; //cm
 
 int main(void)
 {
@@ -181,7 +182,6 @@ void parseRSSIData()
 	}
 
 	// Reset variables
-	if(1 != bool_autonomous) bool_rssi = 0;
 	resetBuffers();
 }
 
@@ -194,7 +194,6 @@ void sendCharsToWifly(char data[])
 		UCA0TXBUF = data[j];
 	}
 }
-
 
 void sendCharsToTerm(char data[])
 {
@@ -213,7 +212,6 @@ void wiflySetup()
 	sendCharsToWifly("set ip dhcp 1\n\r");
 	sendCharsToWifly("set wlan join 0\n\r");
 }
-
 
 int rssiCharArrayToInt()
 {
@@ -237,6 +235,8 @@ int rssiCharArrayToInt()
 	return num;
 }
 
+
+
 // USCI_A0 interrupt -- wifly module
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=USCI_A0_VECTOR
@@ -252,7 +252,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
   case 0:break; // no interrupt
   case 2: // RXIFG - received a character!
 
-	  if(1==bool_scanning) // We're expecting scan data to be returned; put it in the buffer.
+	  if(1==bool_scanning) // We're expecting scan data to be returned; put it in the buffer & then parse it.
 	  {
 		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
 		  if(wiflyLastRec > BUFFER_SIZE-1)
@@ -268,7 +268,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 			  parseScanData(); // Parse the data & then send parsed data to Bluetooth.
 		  }
 	  }
-	  else if(1==bool_rssi)
+	  else if(1==bool_autonomous) // We're in autonomous mode! Herein lies the code for the autonomous algorithm.
 	  {
 		  wiflyBuffer[wiflyLastRec++] = UCA0RXBUF; // put char into buffer.
 		  if(wiflyLastRec > BUFFER_SIZE-1)
@@ -281,19 +281,22 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 							  && ('B'==wiflyBuffer[wiflyLastRec-2])
 							  && ('m'==wiflyBuffer[wiflyLastRec-1]) )
 		  {
-			  parseRSSIData(); // Extract the RSSI value
+			  parseRSSIData(); // Extract the RSSI value; also sends RSSI back to the app '*'-delimited
 			  toggleBlue();
 			  // now rssiRet[] contains the rssi data.
 			  if(100!=prevRSSI)
 			  {
+				  // Toggles blue LED. Also need this so the robot doesn't go charging
+				  // & moving too quickly for the algorithm
 				  volatile unsigned int jj = 0;
 				  int kk;
-				  for(kk=0; kk<5; kk++)
+				  for(kk=0; kk<4; kk++)
 				  {
 					  toggleBlue();
 					  for(jj=0; jj<10000;jj++);
 				  }
 
+				  // Convert the rssi value to an int. Now let's compare.
 				  currRSSI = rssiCharArrayToInt();
 
 				  if(currRSSI < threshold) // Negative numbers; continue as long as currRSSI isn't strong enough.
@@ -303,43 +306,51 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 						  prevRSSI = currRSSI;
 						  fwdCount=1;
 					  }
-//					  else if(currRSSI == prevRSSI)
-					  else if((prevRSSI-rssiDiff) <= currRSSI && prevRSSI >= currRSSI)
+					  else if((prevRSSI-rssiDiff) <= currRSSI && prevRSSI >= currRSSI) 
 					  {
+						  // If the RSSI is *about* the same, keep going. Get some pretty severe fluctuations.
 						  fwdCount++;
 					  }
-					  else
+					  else // RSSI took a severe turn for the worse. Reverse!
 					  {
 						  int half = fwdCount/2;
 						  int y=0;
 						  for(y=0; y<half; y++)
 						  {
-							  rev();
+							  rev(); // move backwards! (i.e. reverse)
 						  }
-						  left();
+						  left(); // move left
 					  }
 
 
-					  fwd();
+					  fwd(); // move forward!
 					  sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
 
 				  }
 				  else // Stopping case!
 				  {
 					  bool_autonomous = 0;
-					  bool_rssi=0;
 					  P1OUT = 0x00;
+					  prevRSSI=100; // reset so we can run algorithm again
+					  
+					  /// So we want to signal to the application that we're done seeking. Lets use the carrot. 
+					  /// ^fin^
 				  }
 			  }
 			  else // Then we haven't set it yet. ***NEED TO RESET TO 100 AFTER ALGORITHM ENDS***
 			  {
 				  prevRSSI = rssiCharArrayToInt();
-				  fwd();
+				  fwd(); // move forward!
 				  fwdCount=1;
 				  sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
 			  }
 
 		  }
+	  }
+	  else if(1==bool_manualRSSI)
+	  {
+	      parseRSSIData(); // Extract the RSSI value; also sends RSSI back to the app '*'-delimited
+		  bool_manualRSSI=0;
 	  }
 	  else // Send the char received from Wifly to Bluetooth
 	  {
@@ -382,9 +393,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 				wiflyLastRec = 0;
 			}
 
-			// Check for password stopping condition - null
-			// ** NOTE password stopping condition being sent from android device.
-//			if(wiflyLastRec>0 && 0x18 == wiflyBuffer[wiflyLastRec-1])
+			// Check for password stopping condition - received 2 newline characters.
 			if(passwordCount >= 2) // count newlines
 			{
 				// Parse data for password and position in list of networks
@@ -414,7 +423,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		}
 		else if('P' == UCA1RXBUF)
 		{
-			// Collect next incoming characters (A0_RX) until \0 for network password & position
+			// Collect next incoming characters (A0_RX) until 2*(\n) for network password & position
 			bool_password=1;
 			passwordCount=0;
 		}
@@ -432,21 +441,29 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 		{
 			// Move forward
 			fwd();
+			bool_manualRSSI=1;
+			sendCharsToWifly("show rssi\n\r"); // Also update RSSI
 		}
 		else if('J' == UCA1RXBUF)
 		{
 			// Turn Left
 			left();
+			bool_manualRSSI=1;
+			sendCharsToWifly("show rssi\n\r"); // Also update RSSI
 		}
 		else if('K' == UCA1RXBUF)
 		{
 			// Reverse
 			rev();
+			bool_manualRSSI=1;
+			sendCharsToWifly("show rssi\n\r"); // Also update RSSI
 		}
 		else if('L' == UCA1RXBUF)
 		{
 			// Turn Right
 			right();
+			bool_manualRSSI=1;
+			sendCharsToWifly("show rssi\n\r"); // Also update RSSI
 		}
 		else if('A' == UCA1RXBUF)
 		{
@@ -456,9 +473,8 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 			P1OUT ^= 0x01;
 
 			// 1. Get RSSI.
-			bool_rssi=1;
 			sendCharsToWifly("show rssi\n\r");
-			// GOTO A0RX under if(1==bool_rssi) for next step.
+			// GOTO A0RX under if(1==bool_autonomous) for next step.
 		}
 
 		break;
@@ -469,12 +485,48 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 
 void fwd()
 {
-	forward(rotateSpeedFB, rotateLengthFB);
+	if(getFwdIR() > sensingDist)
+	{
+		forward(rotateSpeedFB, rotateLengthFB);
+	}
+	else
+	{
+//		toggleBlue();
+//		volatile int c = 0;
+//		for(c=0; c<10000; c++);
+//		toggleBlue();
+//		for(c=0; c<10000; c++);
+//		toggleBlue();
+//		for(c=0; c<10000; c++);
+//		toggleBlue();
+//		for(c=0; c<10000; c++);
+//		toggleBlue();
+
+		// Need to make sure that the object wasn't temporary
+//			wait(2);
+		if((sensingDist+1) > getFwdIR())
+		{
+			// Need to avoid the obstacle.
+			if(1==bool_autonomous)
+			{
+				// Just back up and turn left. Probably a terrible idea, but we're doing it.
+				rev();
+				left();
+			}
+		}
+		else
+		{
+			forward(rotateSpeedFB, rotateLengthFB);
+		}
+	}
 }
 
 void rev()
 {
-	reverse(rotateSpeedFB, rotateLengthFB);
+	if(getRevIR() > sensingDist)
+	{
+		reverse(rotateSpeedFB, rotateLengthFB);
+	}
 }
 
 void left()

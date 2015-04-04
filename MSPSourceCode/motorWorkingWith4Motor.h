@@ -22,6 +22,8 @@
 	void rotateLeftFull(int length);
 	void rotateRightFull(int length);
 
+//	void wait(int delay);
+
 
 #ifdef __cplusplus
 	}

@@ -8,5 +8,6 @@
         android:layout_height="wrap_content"
         android:id="@+id/listView_wireless_networks"
         android:textAlignment="center"
-        android:layout_gravity="center|center_horizontal" />
+        android:layout_gravity="center|center_horizontal"
+        android:textSize="@dimen/abc_text_size_small_material" />
 </LinearLayout>
