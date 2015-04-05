@@ -184,27 +184,22 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     byte[] readBuf = (byte[]) msg.obj;
                     String readMessage = new String(readBuf, 0, msg.arg1);
 
-                    Log.v("rec msg", "mode="+((Mode.MANUAL==appMode)?"manual":"not manual"));
-
                     if(Mode.AUTONOMOUS == appMode || Mode.MANUAL == appMode) { // Want to update the RSSI.
                         rssi.append(readMessage);
                         Log.v("auto mode rssi data", rssi.toString());
 
                         // First check if it's ^fin^
-                        if(determineIfCompletedAlgorithm()) {
-                            // We're done here!
-                            Toast.makeText(context, "Autonomous algorithm has completed!!!", Toast.LENGTH_LONG).show();
-                            Log.v("autonomous alg", "FINNNNNN!!!!!");
-                        }
-						else {
+                        if(!haveWeCompletedAlgorithm()) {
+
 							// Not done with the algorithm, so it must be RSSI data.
 							String ret = determineIfRSSI();
 							if(null != ret && 0 != ret.length()) {
 								manFrag.updateSignalStrength(ret);
-								Log.v("ret=", ret);
 							}
-                            else Log.v("update rssi", "bad value!");
 						}
+                        else {
+                            MainActivity.title.setText(Constants.TITLE_MANUAL); // set title of screen.
+                        }
                     }
                     else if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
 
@@ -439,13 +434,33 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         return ret;
     }
 
-    public boolean determineIfCompletedAlgorithm() {
+    public boolean haveWeCompletedAlgorithm() {
         String data = rssi.toString();
-        if(null != data && data.contains("^"))
+        if(null != data)
         {
-            if(null != data && data.contains("^fin^")) {
+            if(data.contains("^fin^")) {
+                // We're done here!
+                Toast.makeText(getApplicationContext(), "Autonomous algorithm has completed!!!", Toast.LENGTH_LONG).show();
+                Log.v("autonomous alg", "FINNNNNN!!!!!");
+                rssi.setLength(0);
                 return true;
             }
+//            else if(data.contains("@kill")) {
+//
+//                // Did we get the final RSSI value??
+//                String[] plus = data.split(String.valueOf('@'));
+//                /// @kill@-42@ => "", "kill", "-42"
+//                if(null != plus && 3==plus.length)
+//                {
+//                    Log.v("expecting RSSI", (null!=plus[2])?plus[2]:"null");
+//
+//                    Toast.makeText(getApplicationContext(), "Autonomous algorithm has been killed", Toast.LENGTH_LONG).show();
+//                    Log.v("autonomous alg", "death by infinity");
+//                    rssi.setLength(0);
+//                    return true;
+//                }
+//                // else we didn't get the rssi yet. so we'll return false & wait for it
+//            }
         }
         return false;
     }

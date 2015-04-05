@@ -7,6 +7,7 @@
 
 #define BUFFER_SIZE 2000
 #define RSSI_SIZE 5
+#define AUTO_BUF_SIZE 20
 
 // Function headers
 void sendCharsToWifly(char data[]);
@@ -28,13 +29,16 @@ const int rotateSpeedFB = 150;
 const int rotateSpeedLR = 155;
 const int rotateLengthFB = 3;
 const int rotateLengthLR = 5;
-const int threshold = -39;
+const int persistentThreshold = 1;//-39;
 // Autonomous algorithm variables
 int prevRSSI=100;
 int currRSSI=100;
+int localMaxRSSI=-100;
 int rssiDiff = 5;
 int fwdCount=1;
 int sensingDist=35; //cm
+int backtrackCount=0;
+int currThreshold=1;
 
 int main(void)
 {
@@ -62,6 +66,8 @@ int main(void)
 
 	// Set the pinout for the motor controller.
 	setup();
+
+	currThreshold=persistentThreshold;
 
 	P1DIR |= 0x01; // set blue led as output 1.0
 	P4DIR |= 0x80; // set green led as output 4.7
@@ -236,6 +242,48 @@ int rssiCharArrayToInt()
 }
 
 
+void rssiIntToCharArray()
+{
+	char temp[RSSI_SIZE];
+	int l, tempIndex=0, retIndex=1, mod;
+	for(l=0; l<RSSI_SIZE; l++) {
+		temp[l] = '\0';
+		rssiRet[l] = '\0';
+	}
+	rssiRet[0] = '-';
+	
+	localMaxRSSI *= -1; // first make positive
+	while(localMaxRSSI > 0)
+	{
+	    mod	= localMaxRSSI % 10;
+		temp[tempIndex++] = (0x30 + mod); // could throw but shouldn't. ever.
+		localMaxRSSI /= 10;
+	}
+	
+	for(l=(tempIndex-1); l>-1; l--)
+	{
+		rssiRet[retIndex++] = temp[l];
+	}
+
+	sendCharsToTerm(rssiRet);
+	
+}
+
+void endAutoAlg()
+{
+	bool_autonomous = 0;
+	P1OUT = 0x00;
+	prevRSSI=100; // reset so we can run algorithm again
+	backtrackCount=0;
+	currThreshold = persistentThreshold;
+
+	/// So we want to signal to the application that we're done seeking.
+	sendCharsToTerm("^fin^");
+	
+	// Gotta do this one last.
+	localMaxRSSI=-100;
+}
+
 
 // USCI_A0 interrupt -- wifly module
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
@@ -299,17 +347,22 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 				  // Convert the rssi value to an int. Now let's compare.
 				  currRSSI = rssiCharArrayToInt();
 
-				  if(currRSSI < threshold) // Negative numbers; continue as long as currRSSI isn't strong enough.
+				  if(currRSSI < currThreshold) // Negative numbers; continue as long as currRSSI isn't strong enough.
 				  {
 					  if(currRSSI > prevRSSI)
 					  {
 						  prevRSSI = currRSSI;
 						  fwdCount=1;
+						  
+						  // Now to prevent infinite algorithm
+						  localMaxRSSI = prevRSSI; // set local max
+						  backtrackCount=0; // reset count
 					  }
 					  else if((prevRSSI-rssiDiff) <= currRSSI && prevRSSI >= currRSSI) 
 					  {
 						  // If the RSSI is *about* the same, keep going. Get some pretty severe fluctuations.
 						  fwdCount++;
+						  backtrackCount++;
 					  }
 					  else // RSSI took a severe turn for the worse. Reverse!
 					  {
@@ -318,32 +371,52 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 						  for(y=0; y<half; y++)
 						  {
 							  rev(); // move backwards! (i.e. reverse)
+							  backtrackCount++;
 						  }
 						  left(); // move left
+						  backtrackCount++;
+						  fwdCount=1;
 					  }
 
-
+					  // We just moved according to autonomous algorithm.
+					  // Check for infinite case, and reset threshold if necessary
 					  fwd(); // move forward!
+					  backtrackCount++;
+
+					  if(backtrackCount >= AUTO_BUF_SIZE) // time to lower our standards
+					  {
+						  // Need to reset the current threshold.
+						  sendCharsToTerm("reset");
+						  currThreshold = localMaxRSSI-rssiDiff;
+						  backtrackCount=0;
+					  }
+
+					  // Now continue
 					  sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
 
 				  }
 				  else // Stopping case!
 				  {
-					  bool_autonomous = 0;
-					  P1OUT = 0x00;
-					  prevRSSI=100; // reset so we can run algorithm again
-					  
-					  /// So we want to signal to the application that we're done seeking. Lets use the carrot. 
-					  /// ^fin^
-					  sendCharsToTerm("^fin^");
+					  endAutoAlg();
 				  }
 			  }
 			  else // Then we haven't set it yet. ***NEED TO RESET TO 100 AFTER ALGORITHM ENDS***
 			  {
 				  prevRSSI = rssiCharArrayToInt();
-				  fwd(); // move forward!
-				  fwdCount=1;
-				  sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
+			      if(prevRSSI > currThreshold)
+				  {
+				      // We're done before the algorithm even started. 
+					  endAutoAlg();
+				  }
+				  else // We need to run the autonomous algorithm.
+				  {
+					  localMaxRSSI = prevRSSI;
+					  fwd(); // move forward!
+				      fwdCount=1;
+				      backtrackCount++;
+				      sendCharsToWifly("show rssi\n\r"); // need to set currRSSI
+				  }
+				  
 			  }
 
 		  }
@@ -510,12 +583,15 @@ void fwd()
 //			wait(2);
 		if((sensingDist+1) > getFwdIR())
 		{
-			// Need to avoid the obstacle.
+			// Need to avoid the obstacle. Only if in autonomous mode and not backtracking.
 			if(1==bool_autonomous)
 			{
 				// Just back up and turn left. Probably a terrible idea, but we're doing it.
 				rev();
 				left();
+				backtrackCount++;
+				backtrackCount++;
+				fwdCount=1;
 			}
 		}
 		else

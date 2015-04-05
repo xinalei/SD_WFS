@@ -91,6 +91,7 @@ public class ManualControlFragment extends Fragment {
             public void onClick(View v) {
                 // TODO: Start autonomous functionality
                 MainActivity.appMode = MainActivity.Mode.AUTONOMOUS;
+                MainActivity.title.setText(Constants.TITLE_AUTO); // set title of screen.
                 MainActivity.mConnectingDevices.write("A".getBytes()); // sends data to MSP
             }
         });
