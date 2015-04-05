@@ -20,7 +20,7 @@ public class CommandFragment extends Fragment {
     private TextView command_log;
     private StringBuilder log, scan_data, rssi_data;
     private ScrollView log_container;
-    boolean obtain_sd = false, obtain_rssi=false;
+    boolean obtain_sd = false;
 
     public CommandFragment() {
     }
@@ -35,8 +35,6 @@ public class CommandFragment extends Fragment {
         enter_CM = (Button) rootView.findViewById(R.id.button_wifly$$$);
         reboot = (Button) rootView.findViewById(R.id.button_wiflyreboot);
         scan = (Button) rootView.findViewById(R.id.button_wiflyscan);
-        rssi = (Button) rootView.findViewById(R.id.button_wiflyRSSI);
-        show = (Button) rootView.findViewById(R.id.button_wiflyshownet);
         setup = (Button) rootView.findViewById(R.id.button_wiflysetup);
         finish = (Button) rootView.findViewById(R.id.button_exitwifisetup);
 
@@ -70,23 +68,6 @@ public class CommandFragment extends Fragment {
                 // Start spinner.
                 MainActivity.loadFrag = LoadingDialogFragment.newInstance();
                 MainActivity.loadFrag.show(getActivity().getSupportFragmentManager(), "loadingFragment");
-            }
-        });
-
-        rssi.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                obtain_rssi = true;
-                MainActivity.mConnectingDevices.write("G".getBytes()); // sends data to device
-                updateLog("rssi", false);
-            }
-        });
-
-        show.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                MainActivity.mConnectingDevices.write("N".getBytes()); // sends data to device
-                updateLog("show net", false);
             }
         });
 
@@ -195,34 +176,5 @@ public class CommandFragment extends Fragment {
             stopCollectingScanData(); // Stop collecting!
             return false;
         }
-    }
-
-    public String determineIfReceivedRSSI() {
-
-        String rssidata = rssi_data.toString();
-        if(null != rssidata && rssidata.contains("RSSI") && rssidata.contains("dBm")) {
-            // can extract the data.
-
-            Integer start=null, end=null;
-            for(int i=0; i<rssidata.length(); i++) {
-                if('(' == rssidata.charAt(i)) {
-                    start = i+1;
-                }
-                else if(')' == rssidata.charAt(i)) {
-                    end = i;
-                    break;
-                }
-            }
-
-            if(null != start && null != end) {
-                obtain_rssi = false;
-                rssi_data.setLength(0);
-                return rssidata.substring(start, end).trim();
-            }
-            else {
-                return null;
-            }
-        }
-        else return null;
     }
 }

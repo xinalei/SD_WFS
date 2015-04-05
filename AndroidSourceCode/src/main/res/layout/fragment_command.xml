@@ -36,7 +36,7 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="command setup"
+            android:text="Command Setup"
             android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflysetup"/>
 
@@ -53,20 +53,6 @@
             android:text="Reboot Wifly Module"
             android:textSize="@dimen/abc_text_size_small_material"
             android:id="@+id/button_wiflyreboot"/>
-
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="RSSI"
-            android:textSize="@dimen/abc_text_size_small_material"
-            android:id="@+id/button_wiflyRSSI"/>
-
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="show net"
-            android:textSize="@dimen/abc_text_size_small_material"
-            android:id="@+id/button_wiflyshownet"/>
 
         <Button
             android:layout_width="fill_parent"

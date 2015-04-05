@@ -60,6 +60,12 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     .commit();
         }
 
+        // Force the logo to show
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayShowHomeEnabled(true);
+        actionBar.setLogo(R.drawable.ic_launcher);
+        actionBar.setDisplayUseLogoEnabled(true);
+
         // Lock orientation to portrait.
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
@@ -210,20 +216,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                             // Done collecting.
                             availableWifiNetworks = commandFrag.stopCollectingScanData();
                             selectANetwork(); // Open dialog for user to select a network from list.
-                        }
-                    }
-                    else if(commandFrag.obtain_rssi) { // Retrieve the RSSI value
-                        commandFrag.updateRSSILog(readMessage); // First add message to commandFrag variable
-
-                        String rssi = commandFrag.determineIfReceivedRSSI();
-                        if(null != rssi && 0 != rssi.length()) {
-                            // got a value!
-                            // if it's 0 we're not connected to anything.
-                            if(rssi.contains("-")) {
-                                Log.v("received rssi!", "value = " +rssi);
-                                currentRSSI = rssi;
-                                commandFrag.updateLog(rssi, true);
-                            }
                         }
                     }
                     else { // It's not scan data. Just put it in the log.

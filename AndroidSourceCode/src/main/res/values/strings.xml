@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">SD_WFS</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="app_name">Wi-Fi Seeker</string>
+    <string name="app_title">The Wi-Fi Seeker Application</string>
     <string name="action_settings">Settings</string>
     <string name="setting_btdisconnect">Disconnect from Bluetooth Device</string>
     <string name="wiflyInst">Instructions For Selecting a Wireless Network:\n1. Turn on command mode.\n3. Execute command setup.\n3. Scan for your network and select it to connect.\n
@@ -10,9 +10,11 @@
     <string name="rssiText">Current Signal Strength:</string>
     <string name="rssiVal">-55 dBm</string>
     <string name="autoalg_but">Start Autonomous\nAlgorithm</string>
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="autoalg_complete">The Wi-Fi Seeker has completed its mission!\n
+    The algorithm completed with a measured RSSI of:</string>
+
 
     <string name="videoSetup">IP Camera Setup</string>
-    <string name="loadingMsg">Retrieving Available Networks...</string>
+    <string name="loadingMsg">Retrieving Available Networks…</string>
 
 </resources>
