@@ -29,4 +29,6 @@ public interface Constants {
     public static final String TITLE_MANUAL = "Manual Mode";
     public static final String TITLE_AUTO = "Autonomous Mode";
 
+    public static final String WFS_CAM_ADDR = "http://wfs:group30@192.168.1.19/image.jpg";
+
 }

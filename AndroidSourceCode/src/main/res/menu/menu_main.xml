@@ -8,4 +8,19 @@
         android:orderInCategory="100"
         app:showAsAction="never" />
 
+    <item android:id="@+id/action_camera_refresh"
+        android:title="Refresh the video feed"
+        android:orderInCategory="101"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/action_camera_stop"
+        android:title="Stop the video feed"
+        android:orderInCategory="102"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/action_wifly_nr"
+        android:title="Attempt to reestablish comm with Wifly"
+        android:orderInCategory="103"
+        app:showAsAction="never" />
+
 </menu>

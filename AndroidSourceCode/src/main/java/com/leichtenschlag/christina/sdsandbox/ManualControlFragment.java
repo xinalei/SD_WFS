@@ -99,6 +99,13 @@ public class ManualControlFragment extends Fragment {
 
         // Start the video feed.
         feed = (WebView) rootView.findViewById(R.id.webview_videofeed);
+        startTimer();
+
+        return rootView;
+    }
+
+
+    public void startTimer() {
         feedTimer = new Timer();
         feedTimer.schedule(new TimerTask() {
             @Override
@@ -119,14 +126,9 @@ public class ManualControlFragment extends Fragment {
             }
         }, 0, 600);//refresh rate time interval (ms)
         // Can't go much faster, else nothing actually loads.
-
-        return rootView;
     }
 
-
     public void updateSignalStrength(String rssi) {
-
-        Log.v("rssi update", "updating signal strength: " + rssi);
         this.signalStrength.setText( rssi + " dBm");
     }
 

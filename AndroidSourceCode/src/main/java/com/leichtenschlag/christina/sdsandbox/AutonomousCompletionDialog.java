@@ -51,7 +51,8 @@ public class AutonomousCompletionDialog extends DialogFragment {
         done.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                    dismiss();
+                MainActivity.autoComplete = null;
+                dismiss();
             }
         });
 

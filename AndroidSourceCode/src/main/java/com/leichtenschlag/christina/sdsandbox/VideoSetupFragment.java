@@ -54,7 +54,7 @@ public class VideoSetupFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_video_setup, container, false);
 
         editIPaddr = (EditText) rootView.findViewById(R.id.editText_ipaddr);
-        editIPaddr.setText(MainActivity.ip);
+        editIPaddr.setText(Constants.WFS_CAM_ADDR);//MainActivity.ip);
         refrehCam = (Button) rootView.findViewById(R.id.button_refreshcam);
         finish = (Button) rootView.findViewById(R.id.button_finishvideosetup);
 

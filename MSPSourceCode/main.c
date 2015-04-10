@@ -29,7 +29,7 @@ const int rotateSpeedFB = 150;
 const int rotateSpeedLR = 155;
 const int rotateLengthFB = 3;
 const int rotateLengthLR = 5;
-const int persistentThreshold = 1;//-39;
+const int persistentThreshold = -35;
 // Autonomous algorithm variables
 int prevRSSI=100;
 int currRSSI=100;
@@ -252,12 +252,12 @@ void rssiIntToCharArray()
 	}
 	rssiRet[0] = '-';
 	
-	localMaxRSSI *= -1; // first make positive
-	while(localMaxRSSI > 0)
+	currRSSI *= -1; // first make positive // was localMaxRSSI
+	while(currRSSI > 0)
 	{
-	    mod	= localMaxRSSI % 10;
+	    mod	= currRSSI % 10;
 		temp[tempIndex++] = (0x30 + mod); // could throw but shouldn't. ever.
-		localMaxRSSI /= 10;
+		currRSSI /= 10;
 	}
 	
 	for(l=(tempIndex-1); l>-1; l--)
@@ -265,12 +265,13 @@ void rssiIntToCharArray()
 		rssiRet[retIndex++] = temp[l];
 	}
 
-	sendCharsToTerm(rssiRet);
+	sendCharsToTerm(rssiRet); // Send the rssi to the app
 	
 }
 
 void endAutoAlg()
 {
+	// currRSSI is less than threshold. Therefore return RSSI i.e. currRSSI
 	bool_autonomous = 0;
 	P1OUT = 0x00;
 	prevRSSI=100; // reset so we can run algorithm again
@@ -278,10 +279,13 @@ void endAutoAlg()
 	currThreshold = persistentThreshold;
 
 	/// So we want to signal to the application that we're done seeking.
-	sendCharsToTerm("^fin^");
+	sendCharsToTerm("@fin@");
+	rssiIntToCharArray(); // sends the current rssi to the app
+	sendCharsToTerm("@");
 	
 	// Gotta do this one last.
 	localMaxRSSI=-100;
+	currRSSI=100; // reset just in case.
 }
 
 
@@ -387,7 +391,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 					  {
 						  // Need to reset the current threshold.
 						  sendCharsToTerm("reset");
-						  currThreshold = localMaxRSSI-rssiDiff;
+						  currThreshold = localMaxRSSI-2;
 						  backtrackCount=0;
 					  }
 
@@ -406,6 +410,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 			      if(prevRSSI > currThreshold)
 				  {
 				      // We're done before the algorithm even started. 
+			    	  currRSSI = prevRSSI;
 					  endAutoAlg();
 				  }
 				  else // We need to run the autonomous algorithm.

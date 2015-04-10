@@ -35,7 +35,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static BluetoothDevice device=null;
     static String btDeviceName=null, availableWifiNetworks = null,
             userSelectedNetwork=null, userSelectedNetworkPos=null,
-            ip = "http://wfs:group30@192.168.1.19/image.jpg",
+            ip = Constants.WFS_CAM_ADDR,
             currentRSSI=null;
     static TextView connectionStatus, title;
     static StringBuilder rssi;
@@ -47,6 +47,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     static CommandFragment commandFrag;
     static LoadingDialogFragment loadFrag=null;
     static ManualControlFragment manFrag=null;
+    static AutonomousCompletionDialog autoComplete=null;
 
     /// Android Activity Functions /////////////////////////////////////////////////////////////////////////////////////
 
@@ -144,6 +145,26 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
             }
             return true;
         }
+        else if(id == R.id.action_camera_refresh) {
+            if(null != manFrag) {
+                if(null != manFrag.feedTimer) {
+                    manFrag.feedTimer.cancel();
+                    manFrag.startTimer();
+                }
+            }
+        }
+        else if(id == R.id.action_camera_stop) {
+            if(null != manFrag) {
+                if(null != manFrag.feedTimer) {
+                    manFrag.feedTimer.cancel();
+                }
+            }
+        }
+        else if(id == R.id.action_wifly_nr) {
+            if(null != mConnectingDevices) {
+                mConnectingDevices.write("\n\r".getBytes());
+            }
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -192,9 +213,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
                     if(Mode.AUTONOMOUS == appMode || Mode.MANUAL == appMode) { // Want to update the RSSI.
                         rssi.append(readMessage);
-                        Log.v("auto mode rssi data", rssi.toString());
 
-                        // First check if it's ^fin^
+                        // First check if it's the signal that the autonomous algorithm
                         if(!haveWeCompletedAlgorithm()) {
 
 							// Not done with the algorithm, so it must be RSSI data.
@@ -205,6 +225,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 						}
                         else {
                             MainActivity.title.setText(Constants.TITLE_MANUAL); // set title of screen.
+                            addAutoCompleteDialog();
                         }
                     }
                     else if(commandFrag.obtain_sd) { // We're in the midst of collecting scan data.
@@ -241,7 +262,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                     if(null != context) {
                         connectionStatus.setText("Connection Established with " + btDeviceName);
 
-                        addVideoSetupFragment();//addCommandFragment();
+                        addVideoSetupFragment();
                     }
                     break;
                 case Constants.DISCONNECT: // Lost connection with bluetooth module.
@@ -319,6 +340,26 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         title.setText(Constants.TITLE_WIFI);
     }
 
+    // Open up the command window! Replace current fragment with command frag.
+    private void addAutoCompleteDialog() {
+
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog_autonomousComplete");
+        if (prev != null) {
+            ft.remove(prev);
+        }
+        ft.addToBackStack(null);
+
+        // Create and show the dialog.
+        autoComplete = AutonomousCompletionDialog.newInstance(currentRSSI);
+        if(null == autoComplete) {
+            Toast.makeText(getApplicationContext(), "Could not make autocomplete dialog.", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            autoComplete.show(ft, "dialog_autonomousComplete");
+        }
+    }
+
 
     // We have data to be able to choose which wifi network to connect to. So lets do it!
     private void selectANetwork() {
@@ -380,9 +421,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
 
     public void updatePassword(String p) {
 
-        // Tell wifly a password.
-        Log.v("user has entered a pw", p);
-
         // Send 'P' for Password command
         mConnectingDevices.write("P".getBytes()); // sends data to MSP
 
@@ -390,10 +428,6 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         String pwData = p + "\n" + userSelectedNetworkPos + "\n"; // construct pw data.
         mConnectingDevices.write(pwData.getBytes()); // send password to MSP
         commandFrag.updateLog("sending pw " + p + "and network num " +userSelectedNetworkPos, false);
-
-
-        // Now change the screen to manual control.
-//        addManualControlFragment();
     }
 
     public void camSetupComplete(String ipaddr) {
@@ -401,6 +435,8 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         addCommandFragment();
     }
 
+    // Function to determine whether or not the data returned is the full RSSI value.
+    // This gets called when the app is in either autonomous or manual mode, to update the TextView
     public String determineIfRSSI() {
         String ret = null;
         String rssidata = rssi.toString();
@@ -426,33 +462,25 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         return ret;
     }
 
+    // Function to check whether the data we received indicates that the autonomous algorithm
+    // was completed or not.
     public boolean haveWeCompletedAlgorithm() {
         String data = rssi.toString();
         if(null != data)
         {
-            if(data.contains("^fin^")) {
-                // We're done here!
-                Toast.makeText(getApplicationContext(), "Autonomous algorithm has completed!!!", Toast.LENGTH_LONG).show();
-                Log.v("autonomous alg", "FINNNNNN!!!!!");
-                rssi.setLength(0);
-                return true;
+
+            if(data.contains("@fin")) {
+                // Did we get the final RSSI value??
+                String[] finval = data.split(String.valueOf('@'));
+                /// @fin@-42@ => "", "fin", "-42", "" // need this last char to ensure we got the entire RSSI
+                if(null != finval && 4==finval.length)
+                {
+                    currentRSSI = finval[2];
+                    rssi.setLength(0);
+                    return true;
+                }
+                // else we didn't get the rssi yet. so we'll return false & wait for it
             }
-//            else if(data.contains("@kill")) {
-//
-//                // Did we get the final RSSI value??
-//                String[] plus = data.split(String.valueOf('@'));
-//                /// @kill@-42@ => "", "kill", "-42"
-//                if(null != plus && 3==plus.length)
-//                {
-//                    Log.v("expecting RSSI", (null!=plus[2])?plus[2]:"null");
-//
-//                    Toast.makeText(getApplicationContext(), "Autonomous algorithm has been killed", Toast.LENGTH_LONG).show();
-//                    Log.v("autonomous alg", "death by infinity");
-//                    rssi.setLength(0);
-//                    return true;
-//                }
-//                // else we didn't get the rssi yet. so we'll return false & wait for it
-//            }
         }
         return false;
     }
