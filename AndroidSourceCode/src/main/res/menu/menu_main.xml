@@ -18,8 +18,8 @@
         android:orderInCategory="102"
         app:showAsAction="never" />
 
-    <item android:id="@+id/action_wifly_nr"
-        android:title="Attempt to reestablish comm with Wifly"
+    <item android:id="@+id/action_camera_change"
+        android:title="Modify video feed"
         android:orderInCategory="103"
         app:showAsAction="never" />
 

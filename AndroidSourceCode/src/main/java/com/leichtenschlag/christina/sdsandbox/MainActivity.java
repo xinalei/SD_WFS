@@ -17,7 +17,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -26,7 +25,10 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 
-public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener, PasswordDialog.PasswordListener, VideoSetupFragment.VideoFragmentListener
+public class MainActivity extends ActionBarActivity implements SelectNetworkDialog.NetworkSelectListener,
+                                                                PasswordDialog.PasswordListener,
+                                                                VideoSetupFragment.VideoFragmentListener,
+                                                                IPDialog.IPListener
 {
     static BluetoothAdapter mBluetoothAdapter;
     static ListView btDeviceList;
@@ -160,9 +162,23 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
                 }
             }
         }
-        else if(id == R.id.action_wifly_nr) {
-            if(null != mConnectingDevices) {
-                mConnectingDevices.write("\n\r".getBytes());
+        else if(id == R.id.action_camera_change) {
+            // Launch dialog to change ip address
+
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog_changeIP");
+            if (prev != null) {
+                ft.remove(prev);
+            }
+            ft.addToBackStack(null);
+
+            // Create and show the dialog.
+            DialogFragment newFragment = new IPDialog();
+            if(null == newFragment) {
+                Toast.makeText(getApplicationContext(), "Could not make IP dialog.", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                newFragment.show(ft, "dialog_changeIP");
             }
         }
 
@@ -428,6 +444,19 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
         String pwData = p + "\n" + userSelectedNetworkPos + "\n"; // construct pw data.
         mConnectingDevices.write(pwData.getBytes()); // send password to MSP
         commandFrag.updateLog("sending pw " + p + "and network num " +userSelectedNetworkPos, false);
+    }
+
+    public void updateIPaddr(String p)
+    {
+        // Simply need to change the ip for main activity.
+        MainActivity.ip = p;
+
+//        if(null != manFrag) {
+//            if(null != manFrag.feedTimer) {
+//                manFrag.feedTimer.cancel();
+//                manFrag.startTimer();
+//            }
+//        }
     }
 
     public void camSetupComplete(String ipaddr) {

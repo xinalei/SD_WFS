@@ -92,6 +92,14 @@ public class ManualControlFragment extends Fragment {
                 // TODO: Start autonomous functionality
                 MainActivity.appMode = MainActivity.Mode.AUTONOMOUS;
                 MainActivity.title.setText(Constants.TITLE_AUTO); // set title of screen.
+
+                // Make manual control buttons invisible.
+                forward.setVisibility(View.INVISIBLE);
+                left.setVisibility(View.INVISIBLE);
+                right.setVisibility(View.INVISIBLE);
+                reverse.setVisibility(View.INVISIBLE);
+                start.setVisibility(View.INVISIBLE);
+
                 MainActivity.mConnectingDevices.write("A".getBytes()); // sends data to MSP
             }
         });
@@ -132,4 +140,14 @@ public class ManualControlFragment extends Fragment {
         this.signalStrength.setText( rssi + " dBm");
     }
 
+
+    public void makeButtonsVisible()
+    {
+        // Make manual control buttons visible.
+        forward.setVisibility(View.VISIBLE);
+        left.setVisibility(View.VISIBLE);
+        right.setVisibility(View.VISIBLE);
+        reverse.setVisibility(View.VISIBLE);
+        start.setVisibility(View.VISIBLE);
+    }
 }

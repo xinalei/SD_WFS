@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,7 +24,7 @@ public class VideoSetupFragment extends Fragment {
         public void camSetupComplete(String ipaddr);
     }
 
-    private EditText editIPaddr;
+//    private EditText editIPaddr;
     private Button refrehCam, finish;
     private Timer videoTimer;
     String ipaddr;
@@ -41,31 +42,27 @@ public class VideoSetupFragment extends Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-
-        }
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_video_setup, container, false);
 
-        editIPaddr = (EditText) rootView.findViewById(R.id.editText_ipaddr);
-        editIPaddr.setText(Constants.WFS_CAM_ADDR);//MainActivity.ip);
+//        editIPaddr = (EditText) rootView.findViewById(R.id.editText_ipaddr);
+//        editIPaddr.setText(Constants.WFS_CAM_ADDR);//MainActivity.ip);
         refrehCam = (Button) rootView.findViewById(R.id.button_refreshcam);
         finish = (Button) rootView.findViewById(R.id.button_finishvideosetup);
 
         // Video feed is held by the main activity.
         videoFeed = (WebView) rootView.findViewById(R.id.webview_setupvideofeed);
 
-
         refrehCam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ipaddr = editIPaddr.getText().toString();
+//                ipaddr = editIPaddr.getText().toString();
+                ipaddr = MainActivity.ip;
+
+                if(videoTimer != null) {
+                    videoTimer.cancel();
+                }
                 videoTimerSetup();
             }
         });
@@ -94,7 +91,7 @@ public class VideoSetupFragment extends Fragment {
                     @Override
                     public void run() {
                         // Update the video feed.
-                        videoFeed.loadUrl(MainActivity.ip);
+                        videoFeed.loadUrl(ipaddr);
                     }
                 });
             }

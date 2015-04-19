@@ -52,6 +52,7 @@ public class AutonomousCompletionDialog extends DialogFragment {
             @Override
             public void onClick(View v) {
                 MainActivity.autoComplete = null;
+                MainActivity.manFrag.makeButtonsVisible();
                 dismiss();
             }
         });
