@@ -1,18 +1,30 @@
 #include "Energia.h"
 #include "sensors.h"
 
-int ir_fwd = P6_0;
-int ir_rev = P6_1;
-int loopcount = 10;
+int ir_fwd1 = P6_0;
+int ir_fwd2 = P6_1;
+int ir_rev1 = P6_4;
+int ir_rev2 = P7_0;
+int loopcount = 5;
 
-int getFwdIR()
+int getFwd1IR()
 {
-	return average_value(loopcount, ir_fwd);
+	return average_value(loopcount, ir_fwd1);
 }
 
-int getRevIR()
+int getFwd2IR()
 {
-	return average_value(loopcount, ir_rev);
+	return average_value(loopcount, ir_fwd2);
+}
+
+int getRev1IR()
+{
+	return average_value(loopcount, ir_rev1);
+}
+
+int getRev2IR()
+{
+	return average_value(loopcount, ir_rev2);
 }
 
 

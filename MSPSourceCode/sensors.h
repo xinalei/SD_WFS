@@ -5,8 +5,10 @@
 	extern "C" {
 #endif
 
-	int getFwdIR();
-	int getRevIR();
+	int getFwd1IR();
+	int getFwd2IR();
+	int getRev1IR();
+	int getRev2IR();
 
 #ifdef __cplusplus
 	}

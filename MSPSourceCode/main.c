@@ -7,7 +7,7 @@
 
 #define BUFFER_SIZE 2000
 #define RSSI_SIZE 5
-#define AUTO_BUF_SIZE 20
+#define AUTO_BUF_SIZE 35
 
 // Function headers
 void sendCharsToWifly(char data[]);
@@ -25,10 +25,10 @@ int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
 // Booleans
 int bool_scanning=0,bool_password=0,bool_autonomous=0,bool_manualRSSI=0; // boolean 0=false 1=true
 // Constants
-const int rotateSpeedFB = 150;
-const int rotateSpeedLR = 155;
+const int rotateSpeedFB = 200;
+const int rotateSpeedLR = 200;
 const int rotateLengthFB = 3;
-const int rotateLengthLR = 5;
+const int rotateLengthLR = 7;
 const int persistentThreshold = -35;
 // Autonomous algorithm variables
 int prevRSSI=100;
@@ -577,7 +577,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 
 void fwd()
 {
-	if(getFwdIR() > sensingDist)
+	if(getFwd1IR() > sensingDist && getFwd2IR() > sensingDist)
 	{
 		forward(rotateSpeedFB, rotateLengthFB);
 	}
@@ -586,7 +586,7 @@ void fwd()
 
 		// Need to make sure that the object wasn't temporary
 //			wait(2);
-		if((sensingDist+1) > getFwdIR())
+		if((sensingDist+1) > getFwd1IR() || (sensingDist+1) > getFwd2IR())
 		{
 			// Need to avoid the obstacle. Only if in autonomous mode and not backtracking.
 			if(1==bool_autonomous)
@@ -608,7 +608,7 @@ void fwd()
 
 void rev()
 {
-	if(getRevIR() > sensingDist)
+	if(getRev1IR() > sensingDist && getRev2IR() > sensingDist)
 	{
 		reverse(rotateSpeedFB, rotateLengthFB);
 	}
