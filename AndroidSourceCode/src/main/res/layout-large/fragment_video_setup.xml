@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="10dp">
+
+    <!--
+   <EditText
+       android:layout_width="fill_parent"
+       android:layout_height="wrap_content"
+       android:id="@+id/editText_ipaddr"
+       android:hint="Enter camera's IP address"
+       android:textSize="@dimen/abc_text_size_small_material"
+       android:maxLines="1"
+       android:layout_gravity="center"
+       /> -->
+
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Refresh Camera"
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:id="@+id/button_refreshcam"
+        android:layout_gravity="center_horizontal" />
+
+    <WebView
+        android:layout_width="320dp"
+        android:layout_height="240dp"
+        android:id="@+id/webview_setupvideofeed"
+        android:layout_gravity="center"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Finish"
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:id="@+id/button_finishvideosetup"
+        android:layout_gravity="center_horizontal" />
+
+</LinearLayout>

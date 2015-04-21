@@ -5,7 +5,7 @@
     <string name="app_title">The Wi-Fi Seeker Application</string>
     <string name="action_settings">Settings</string>
     <string name="setting_btdisconnect">Disconnect from Bluetooth</string>
-    <string name="wiflyInst">Instructions For Selecting a Wireless Network:\n1. Turn on command mode.\n3. Execute command setup.\n3. Scan for your network and select it to connect.\n
+    <string name="wiflyInst">Instructions For Selecting a Wireless Network:\n1. Turn on command mode.\n2. Execute command setup.\n3. Scan for your network and select it to connect.\n
         4. Click \'Finish\' to complete setup.</string>
     <string name="rssiText">Current Signal Strength:</string>
     <string name="rssiVal">-55 dBm</string>
