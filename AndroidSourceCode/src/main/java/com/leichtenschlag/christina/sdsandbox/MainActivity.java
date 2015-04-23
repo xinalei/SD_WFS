@@ -449,7 +449,7 @@ public class MainActivity extends ActionBarActivity implements SelectNetworkDial
     public void updateIPaddr(String p)
     {
         // Simply need to change the ip for main activity.
-        MainActivity.ip = p;
+        this.ip = p;
 
 //        if(null != manFrag) {
 //            if(null != manFrag.feedTimer) {
