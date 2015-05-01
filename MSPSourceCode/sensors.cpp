@@ -3,8 +3,8 @@
 
 int ir_fwd1 = P6_0;
 int ir_fwd2 = P6_1;
-int ir_rev1 = P6_4;
-int ir_rev2 = P7_0;
+int ir_rev1 = P6_2;
+int ir_rev2 = P6_3;
 int loopcount = 5;
 
 int getFwd1IR()

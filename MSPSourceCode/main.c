@@ -7,7 +7,7 @@
 
 #define BUFFER_SIZE 2000
 #define RSSI_SIZE 5
-#define AUTO_BUF_SIZE 35
+#define AUTO_BUF_SIZE 40
 
 // Function headers
 void sendCharsToWifly(char data[]);
@@ -26,9 +26,10 @@ int wiflyLastRec=0, networkLastRec=0, passwordCount=0;
 int bool_scanning=0,bool_password=0,bool_autonomous=0,bool_manualRSSI=0; // boolean 0=false 1=true
 // Constants
 const int rotateSpeedFB = 200;
-const int rotateSpeedLR = 200;
+//const int rotateSpeedLR = 200;		//Hardwood
+const int rotateSpeedLR = 255;			//carpet
 const int rotateLengthFB = 3;
-const int rotateLengthLR = 7;
+const int rotateLengthLR = 6;
 const int persistentThreshold = -35;
 // Autonomous algorithm variables
 int prevRSSI=100;
@@ -69,18 +70,25 @@ int main(void)
 
 	currThreshold=persistentThreshold;
 
-	P1DIR |= 0x01; // set blue led as output 1.0
-	P4DIR |= 0x80; // set green led as output 4.7
-	P4OUT |= 0x80; // turn on green led
-	P1OUT &= ~0x01; // turn off blue led
+	P1DIR |= 0x03; // set green led as output 1.0 & white led as output 1.1
+	P4DIR |= 0x80; // set blue led as output 4.7
+	P1OUT |= 0x01; // turn on green led
+	P4OUT &= ~0x80; // turn off blue led
+	P1OUT &= ~0x02; // turn off white led
+
 
 	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 	__no_operation();                         // For debugger
 }
 
-void toggleBlue()
+void toggleWhite()
 {
 	P1OUT ^= 0x01;
+}
+
+void toggleBlue()
+{
+	P1OUT ^= 0x02;
 }
 
 void toggleGreen()
@@ -286,6 +294,9 @@ void endAutoAlg()
 	// Gotta do this one last.
 	localMaxRSSI=-100;
 	currRSSI=100; // reset just in case.
+
+
+	P1OUT &= ~0x02; // turn off white led
 }
 
 
@@ -338,15 +349,15 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 			  // now rssiRet[] contains the rssi data.
 			  if(100!=prevRSSI)
 			  {
-				  // Toggles blue LED. Also need this so the robot doesn't go charging
-				  // & moving too quickly for the algorithm
-				  volatile unsigned int jj = 0;
-				  int kk;
-				  for(kk=0; kk<4; kk++)
-				  {
-					  toggleBlue();
-					  for(jj=0; jj<10000;jj++);
-				  }
+//				  // Toggles blue LED. Also need this so the robot doesn't go charging
+//				  // & moving too quickly for the algorithm
+//				  volatile unsigned int jj = 0;
+//				  int kk;
+//				  for(kk=0; kk<4; kk++)
+//				  {
+//					  toggleBlue();
+//					  for(jj=0; jj<10000;jj++);
+//				  }
 
 				  // Convert the rssi value to an int. Now let's compare.
 				  currRSSI = rssiCharArrayToInt();
@@ -562,7 +573,7 @@ void __attribute__ ((interrupt(USCI_A1_VECTOR))) USCI_A1_ISR (void)
 			// Begin autonomous functionality.
 			bool_autonomous=1;
 
-			P1OUT ^= 0x01;
+			P1OUT |= 0x02; // turn on white led
 
 			// 1. Get RSSI.
 			sendCharsToWifly("show rssi\n\r");
@@ -588,6 +599,15 @@ void fwd()
 //			wait(2);
 		if((sensingDist+1) > getFwd1IR() || (sensingDist+1) > getFwd2IR())
 		{
+			  // Toggles blue LED. Also need this so the robot doesn't go charging
+			  // & moving too quickly for the algorithm
+			  volatile unsigned int jj = 0;
+			  int kk;
+			  for(kk=0; kk<4; kk++)
+			  {
+				  toggleBlue();
+				  for(jj=0; jj<10000;jj++);
+			  }
 			// Need to avoid the obstacle. Only if in autonomous mode and not backtracking.
 			if(1==bool_autonomous)
 			{
@@ -611,6 +631,18 @@ void rev()
 	if(getRev1IR() > sensingDist && getRev2IR() > sensingDist)
 	{
 		reverse(rotateSpeedFB, rotateLengthFB);
+	}
+	else
+	{
+		  // Toggles blue LED. Also need this so the robot doesn't go charging
+		  // & moving too quickly for the algorithm
+		  volatile unsigned int jj = 0;
+		  int kk;
+		  for(kk=0; kk<4; kk++)
+		  {
+			  toggleBlue();
+			  for(jj=0; jj<10000;jj++);
+		  }
 	}
 }
 
